@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>ParkFree — Verifica Sosta</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --ok:   #16A34A; --ok-bg:   #F0FDF4; --ok-border:   #BBF7D0;
+      --nok:  #DC2626; --nok-bg:  #FEF2F2; --nok-border:  #FECACA;
+      --warn: #D97706; --warn-bg: #FFFBEB; --warn-border: #FDE68A;
+      --blue: #1D4ED8; --blue-bg: #EFF6FF;
+      --dark: #0F172A; --gray: #64748B; --light: #F8FAFC;
+      --white: #FFFFFF; --border: #E2E8F0;
+    }
+    html, body {
+      height: 100%; font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--dark); color: var(--dark);
+      -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+
+    /* ── SHELL ── */
+    .shell {
+      min-height: 100vh; display: flex; flex-direction: column;
+      background: var(--dark);
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      background: var(--dark); padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .topbar-brand {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .topbar-badge {
+      background: #1E3A5F; border-radius: 10px; padding: 6px 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .topbar-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: #22C55E; animation: blink 1.8s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .topbar-badge span { font-size: .75rem; font-weight: 600; color: #94A3B8; letter-spacing: .3px; }
+    .topbar-title { font-size: 1.1rem; font-weight: 800; color: #F8FAFC; letter-spacing: -.3px; }
+    .topbar-title em { font-style: normal; color: #3B82F6; }
+    .topbar-time { font-size: .8rem; font-weight: 600; color: #64748B; font-variant-numeric: tabular-nums; }
+
+    /* ── MAIN CARD ── */
+    .main-card {
+      flex: 1; background: var(--white); border-radius: 28px 28px 0 0;
+      margin-top: 8px; padding: 28px 20px 32px;
+      overflow-y: auto;
+    }
+
+    /* ── INPUT SECTION ── */
+    .input-section { margin-bottom: 24px; }
+    .input-label {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--gray); margin-bottom: 10px;
+    }
+    .plate-wrap {
+      position: relative; display: flex; gap: 10px;
+    }
+    .plate-input {
+      flex: 1; height: 72px; border-radius: 18px;
+      border: 2.5px solid var(--border); background: var(--light);
+      font-size: 2rem; font-weight: 800; text-align: center;
+      letter-spacing: 6px; text-transform: uppercase; color: var(--dark);
+      font-family: 'Inter', monospace; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      padding: 0 16px;
+      /* Italian plate font feel */
+      caret-color: #3B82F6;
+    }
+    .plate-input:focus {
+      border-color: #3B82F6;
+      box-shadow: 0 0 0 4px rgba(59,130,246,.12);
+    }
+    .plate-input.ok-border  { border-color: var(--ok);  box-shadow: 0 0 0 4px rgba(22,163,74,.1); }
+    .plate-input.nok-border { border-color: var(--nok); box-shadow: 0 0 0 4px rgba(220,38,38,.1); }
+
+    .btn-check {
+      height: 72px; width: 72px; border-radius: 18px;
+      border: none; cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: #1D4ED8; transition: all .2s;
+      box-shadow: 0 4px 16px rgba(29,78,216,.35);
+    }
+    .btn-check:hover { background: #1E40AF; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(29,78,216,.4); }
+    .btn-check:active { transform: translateY(0); }
+    .btn-check.loading { background: #475569; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-check svg { width: 28px; height: 28px; }
+
+    .plate-hint { font-size: .75rem; color: var(--gray); margin-top: 8px; text-align: center; }
+
+    /* ── RESULT ── */
+    .result { display: none; margin-bottom: 24px; animation: fadeSlideUp .35s ease; }
+    .result.show { display: block; }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* STATUS HERO */
+    .status-hero {
+      border-radius: 20px; padding: 28px 24px; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 20px;
+      border: 2px solid transparent;
+    }
+    .status-hero.ok  { background: var(--ok-bg);  border-color: var(--ok-border); }
+    .status-hero.nok { background: var(--nok-bg); border-color: var(--nok-border); }
+
+    .status-icon {
+      width: 64px; height: 64px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .status-icon.ok  { background: var(--ok);  }
+    .status-icon.nok { background: var(--nok); }
+    .status-icon svg { width: 32px; height: 32px; color: #fff; }
+
+    .status-text { flex: 1; }
+    .status-verdict {
+      font-size: 1.4rem; font-weight: 900; line-height: 1.1; margin-bottom: 4px;
+    }
+    .status-verdict.ok  { color: var(--ok); }
+    .status-verdict.nok { color: var(--nok); }
+    .status-plate {
+      font-size: 1rem; font-weight: 700; color: var(--dark);
+      letter-spacing: 3px; margin-bottom: 4px;
+    }
+    .status-sub { font-size: .8rem; color: var(--gray); line-height: 1.4; }
+
+    /* DETAIL GRID */
+    .detail-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-bottom: 12px;
+    }
+    .detail-card {
+      background: var(--light); border-radius: 14px; padding: 16px;
+      border: 1.5px solid var(--border);
+    }
+    .detail-card .d-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--gray); margin-bottom: 6px; }
+    .detail-card .d-value { font-size: 1.05rem; font-weight: 700; color: var(--dark); line-height: 1.2; }
+    .detail-card .d-sub   { font-size: .72rem; color: var(--gray); margin-top: 3px; }
+
+    /* TIMER BAR */
+    .timer-bar-wrap {
+      background: var(--light); border-radius: 14px; padding: 16px;
+      border: 1.5px solid var(--border); margin-bottom: 12px;
+    }
+    .timer-bar-head {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+    }
+    .timer-bar-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--gray); }
+    .timer-bar-remaining { font-size: 1.3rem; font-weight: 800; color: var(--ok); font-variant-numeric: tabular-nums; }
+    .timer-bar-remaining.low { color: var(--warn); }
+    .timer-bar-remaining.expired { color: var(--nok); }
+    .bar-bg { height: 10px; background: var(--border); border-radius: 100px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 100px; transition: width 1s linear; }
+    .bar-fill.ok   { background: linear-gradient(90deg, #16A34A, #22C55E); }
+    .bar-fill.warn { background: linear-gradient(90deg, #D97706, #F59E0B); }
+    .bar-fill.nok  { background: var(--nok); }
+    .bar-times {
+      display: flex; justify-content: space-between; margin-top: 6px;
+      font-size: .68rem; color: var(--gray);
+    }
+
+    /* VIOLATION CARD */
+    .violation-card {
+      background: var(--nok-bg); border: 2px solid var(--nok-border);
+      border-radius: 16px; padding: 20px;
+      display: flex; align-items: flex-start; gap: 14px;
+    }
+    .violation-card svg { color: var(--nok); flex-shrink: 0; margin-top: 2px; }
+    .violation-card h4 { font-size: .95rem; font-weight: 700; color: var(--nok); margin-bottom: 4px; }
+    .violation-card p  { font-size: .82rem; color: #7F1D1D; line-height: 1.5; }
+
+    /* ── RECENT LIST ── */
+    .section-title {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--gray); margin-bottom: 12px;
+    }
+    .recent-list { display: flex; flex-direction: column; gap: 8px; }
+    .recent-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; background: var(--light); border-radius: 14px;
+      border: 1.5px solid var(--border); cursor: pointer; transition: all .15s;
+      border: 1.5px solid transparent;
+    }
+    .recent-item:hover { background: #F1F5F9; border-color: var(--border); }
+    .recent-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .recent-dot.ok  { background: var(--ok); }
+    .recent-dot.nok { background: var(--nok); }
+    .recent-plate { font-size: .95rem; font-weight: 700; color: var(--dark); letter-spacing: 2px; flex: 1; }
+    .recent-meta  { font-size: .72rem; color: var(--gray); }
+    .recent-badge {
+      font-size: .68rem; font-weight: 700; padding: 3px 10px; border-radius: 100px;
+    }
+    .recent-badge.ok  { background: var(--ok-bg);  color: var(--ok); }
+    .recent-badge.nok { background: var(--nok-bg); color: var(--nok); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state { text-align: center; padding: 32px 0 16px; }
+    .empty-state svg { color: #CBD5E1; margin-bottom: 12px; }
+    .empty-state p { font-size: .85rem; color: var(--gray); line-height: 1.5; }
+
+    /* ── SPINNER ── */
+    .spinner { width: 28px; height: 28px; border: 3px solid rgba(255,255,255,.25); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      background: var(--dark); padding: 12px 20px;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+      display: flex; justify-content: space-around; flex-shrink: 0;
+      border-top: 1px solid #1E293B;
+    }
+    .bnav-item {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      color: #475569; font-size: .65rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .5px;
+      cursor: pointer; padding: 6px 16px; border-radius: 12px;
+      transition: all .15s; border: none; background: none;
+    }
+    .bnav-item.active { color: #3B82F6; background: rgba(59,130,246,.1); }
+    .bnav-item svg { width: 22px; height: 22px; }
+
+    /* ── UTIL ── */
+    .divider { height: 1px; background: var(--border); margin: 20px 0; }
+    @media (min-width: 480px) {
+      .main-card { max-width: 480px; margin: 8px auto 0; border-radius: 28px; }
+      .shell { background: #0A0F1E; }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div>
+        <div class="topbar-title">Park<em>Free</em> <span style="font-size:.7rem;color:#475569;font-weight:500">Enforcement</span></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+      <div class="topbar-time" id="clockTime"></div>
+      <div class="topbar-badge">
+        <div class="dot"></div>
+        <span>Online</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CARD -->
+  <div class="main-card">
+
+    <!-- INPUT -->
+    <div class="input-section">
+      <div class="input-label">Inserisci targa</div>
+      <div class="plate-wrap">
+        <input
+          id="plateInput"
+          class="plate-input"
+          type="text"
+          inputmode="text"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="characters"
+          spellcheck="false"
+          maxlength="8"
+          placeholder="AB123CD"
+          oninput="onPlateInput(this)"
+          onkeydown="onPlateKey(event)"
+        />
+        <button class="btn-check" id="checkBtn" onclick="doCheck()" title="Verifica">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </button>
+      </div>
+      <div class="plate-hint" id="plateHint">Inserisci la targa e premi il tasto di ricerca</div>
+    </div>
+
+    <!-- RESULT -->
+    <div class="result" id="result"></div>
+
+    <div class="divider" id="divider" style="display:none"></div>
+
+    <!-- RECENT CHECKS -->
+    <div id="recentSection">
+      <div class="section-title">Verifiche recenti</div>
+      <div class="recent-list" id="recentList">
+        <div class="empty-state">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <p>Nessuna verifica ancora.<br/>Inserisci una targa sopra per iniziare.</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-card -->
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <button class="bnav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Verifica
+    </button>
+    <button class="bnav-item" onclick="showStats()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="4"/><line x1="8" y1="12" x2="8" y2="16"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="16" y1="10" x2="16" y2="16"/></svg>
+      Turno
+    </button>
+    <button class="bnav-item" onclick="showInfo()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Info
+    </button>
+  </div>
+
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   CONFIG
+══════════════════════════════════════════════════════════ */
+const API_BASE = 'http://localhost:3001/api';
+
+/* ══════════════════════════════════════════════════════════
+   MOCK DATA (usato come fallback quando il backend non è attivo)
+══════════════════════════════════════════════════════════ */
+const MOCK_DB = {
+  'MI123AB': {
+    active: true,
+    plate: 'MI 123AB',
+    zone: 'Duomo – Via Torino',
+    zoneCode: 'MI-A',
+    startTime: new Date(Date.now() - 45 * 60000).toISOString(),
+    endTime:   new Date(Date.now() + 35 * 60000).toISOString(),
+    durationMin: 80,
+    cost: 3.95,
+    vehicle: 'Fiat Panda',
+  },
+  'AB456CD': {
+    active: true,
+    plate: 'AB 456CD',
+    zone: 'Brera – Via Solferino',
+    zoneCode: 'MI-C',
+    startTime: new Date(Date.now() - 90 * 60000).toISOString(),
+    endTime:   new Date(Date.now() + 90 * 60000).toISOString(),
+    durationMin: 180,
+    cost: 5.50,
+    vehicle: 'BMW Serie 3',
+  },
+  'CD789EF': {
+    active: false,
+    plate: 'CD 789EF',
+    zone: null,
+    zoneCode: null,
+    startTime: null,
+    endTime: null,
+    durationMin: 0,
+    cost: 0,
+    vehicle: null,
+  },
+};
+
+/* ══════════════════════════════════════════════════════════
+   CLOCK
+══════════════════════════════════════════════════════════ */
+function updateClock() {
+  const el = document.getElementById('clockTime');
+  if (!el) return;
+  el.textContent = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* ══════════════════════════════════════════════════════════
+   INPUT HANDLING
+══════════════════════════════════════════════════════════ */
+function onPlateInput(input) {
+  // Forza maiuscolo e rimuove spazi
+  const clean = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  input.value = clean;
+  input.classList.remove('ok-border', 'nok-border');
+
+  const hint = document.getElementById('plateHint');
+  if (clean.length === 0) {
+    hint.textContent = 'Inserisci la targa e premi il tasto di ricerca';
+  } else if (clean.length < 6) {
+    hint.textContent = `Targa incompleta (${clean.length}/7 caratteri)`;
+  } else {
+    hint.textContent = 'Premi il tasto di ricerca o Invio per verificare';
+  }
+}
+
+function onPlateKey(e) {
+  if (e.key === 'Enter') doCheck();
+}
+
+/* ══════════════════════════════════════════════════════════
+   CHECK
+══════════════════════════════════════════════════════════ */
+let timerInterval = null;
+
+async function doCheck() {
+  const input = document.getElementById('plateInput');
+  const btn = document.getElementById('checkBtn');
+  const plate = input.value.trim().toUpperCase().replace(/\s/g, '');
+
+  if (plate.length < 5) {
+    document.getElementById('plateHint').textContent = '⚠️  Targa troppo corta. Ricontrolla.';
+    input.focus();
+    return;
+  }
+
+  // Loading state
+  btn.classList.add('loading');
+  btn.innerHTML = '<div class="spinner"></div>';
+
+  let data = null;
+  try {
+    const res = await fetch(`${API_BASE}/enforcement/check/${encodeURIComponent(plate)}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (res.ok) {
+      data = await res.json();
+    }
+  } catch (_) {
+    // Backend non disponibile: usa mock
+    data = getMockData(plate);
+  }
+
+  // Restore button
+  btn.classList.remove('loading');
+  btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`;
+
+  if (!data) {
+    showError('Errore di comunicazione con il server. Riprova.');
+    return;
+  }
+
+  showResult(plate, data);
+  addToRecent(plate, data);
+}
+
+function getMockData(plate) {
+  const key = plate.toUpperCase().replace(/\s/g, '');
+  if (MOCK_DB[key]) return MOCK_DB[key];
+  // Targa non trovata nel mock = nessuna sosta attiva
+  return { active: false, plate: formatPlate(plate), zone: null, zoneCode: null, startTime: null, endTime: null, durationMin: 0, cost: 0, vehicle: null };
+}
+
+/* ══════════════════════════════════════════════════════════
+   RESULT RENDERING
+══════════════════════════════════════════════════════════ */
+function showResult(rawPlate, data) {
+  const resultEl = document.getElementById('result');
+  const input = document.getElementById('plateInput');
+  const divider = document.getElementById('divider');
+
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+
+  const plate = data.plate || formatPlate(rawPlate);
+  const now = new Date();
+
+  if (data.active) {
+    // ── SOSTA REGOLARE ──
+    const start  = new Date(data.startTime);
+    const end    = new Date(data.endTime);
+    const totalMs = end - start;
+    const remMs   = Math.max(0, end - now);
+    const remMin  = Math.floor(remMs / 60000);
+    const remSec  = Math.floor((remMs % 60000) / 1000);
+
+    const pct = Math.max(0, Math.min(100, (remMs / totalMs) * 100));
+    const barClass = pct > 25 ? 'ok' : pct > 10 ? 'warn' : 'nok';
+    const remClass = pct > 25 ? '' : pct > 10 ? 'low' : 'expired';
+
+    input.classList.add('ok-border');
+
+    resultEl.innerHTML = `
+      <div class="status-hero ok">
+        <div class="status-icon ok">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="status-text">
+          <div class="status-verdict ok">SOSTA REGOLARE</div>
+          <div class="status-plate">${plate}</div>
+          <div class="status-sub">${data.zone || 'Zona non specificata'}</div>
+        </div>
+      </div>
+
+      <div class="timer-bar-wrap">
+        <div class="timer-bar-head">
+          <span class="timer-bar-label">Tempo rimanente</span>
+          <span class="timer-bar-remaining ${remClass}" id="timerDisplay">${pad(remMin)}:${pad(remSec)}</span>
+        </div>
+        <div class="bar-bg"><div class="bar-fill ${barClass}" id="barFill" style="width:${pct}%"></div></div>
+        <div class="bar-times">
+          <span>Inizio: ${fmtTime(start)}</span>
+          <span>Fine: ${fmtTime(end)}</span>
+        </div>
+      </div>
+
+      <div class="detail-grid">
+        <div class="detail-card">
+          <div class="d-label">Zona</div>
+          <div class="d-value">${data.zoneCode || '—'}</div>
+          <div class="d-sub">${data.zone || '—'}</div>
+        </div>
+        <div class="detail-card">
+          <div class="d-label">Durata pagata</div>
+          <div class="d-value">${fmtDur(data.durationMin)}</div>
+          <div class="d-sub">${data.cost?.toFixed(2) || '—'} € totali</div>
+        </div>
+        <div class="detail-card">
+          <div class="d-label">Inizio sosta</div>
+          <div class="d-value">${fmtTime(start)}</div>
+          <div class="d-sub">${fmtDate(start)}</div>
+        </div>
+        <div class="detail-card">
+          <div class="d-label">Scadenza</div>
+          <div class="d-value">${fmtTime(end)}</div>
+          <div class="d-sub">${fmtDate(end)}</div>
+        </div>
+      </div>
+    `;
+
+    // Aggiorna timer ogni secondo
+    timerInterval = setInterval(() => {
+      const nowT = new Date();
+      const remMsT = Math.max(0, end - nowT);
+      const remMinT = Math.floor(remMsT / 60000);
+      const remSecT = Math.floor((remMsT % 60000) / 1000);
+      const pctT = Math.max(0, Math.min(100, (remMsT / totalMs) * 100));
+      const barClassT = pctT > 25 ? 'ok' : pctT > 10 ? 'warn' : 'nok';
+      const remClassT = pctT > 25 ? '' : pctT > 10 ? 'low' : 'expired';
+
+      const td = document.getElementById('timerDisplay');
+      const bf = document.getElementById('barFill');
+      if (td) { td.textContent = `${pad(remMinT)}:${pad(remSecT)}`; td.className = `timer-bar-remaining ${remClassT}`; }
+      if (bf) { bf.style.width = pctT + '%'; bf.className = `bar-fill ${barClassT}`; }
+
+      if (remMsT <= 0 && timerInterval) {
+        clearInterval(timerInterval); timerInterval = null;
+        if (td) td.textContent = 'SCADUTA';
+      }
+    }, 1000);
+
+  } else {
+    // ── SOSTA NON PAGATA ──
+    input.classList.add('nok-border');
+
+    resultEl.innerHTML = `
+      <div class="status-hero nok">
+        <div class="status-icon nok">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </div>
+        <div class="status-text">
+          <div class="status-verdict nok">SOSTA NON PAGATA</div>
+          <div class="status-plate">${plate}</div>
+          <div class="status-sub">Nessuna sessione attiva trovata</div>
+        </div>
+      </div>
+
+      <div class="violation-card">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div>
+          <h4>Veicolo senza ticket valido</h4>
+          <p>Non è stata trovata alcuna sosta attiva per questa targa in questo momento. Il veicolo risulta in violazione della normativa sulla sosta a pagamento.</p>
+        </div>
+      </div>
+
+      <div class="detail-grid" style="margin-top:12px">
+        <div class="detail-card">
+          <div class="d-label">Verifica effettuata</div>
+          <div class="d-value">${fmtTime(now)}</div>
+          <div class="d-sub">${fmtDate(now)}</div>
+        </div>
+        <div class="detail-card">
+          <div class="d-label">Targa</div>
+          <div class="d-value" style="letter-spacing:2px">${plate}</div>
+          <div class="d-sub">Nessuna sosta registrata</div>
+        </div>
+      </div>
+    `;
+  }
+
+  resultEl.classList.add('show');
+  divider.style.display = 'block';
+  resultEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function showError(msg) {
+  const resultEl = document.getElementById('result');
+  resultEl.innerHTML = `
+    <div style="background:#FEF3C7;border:2px solid #FDE68A;border-radius:16px;padding:20px;display:flex;gap:12px;align-items:center">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <p style="font-size:.9rem;color:#92400E;font-weight:500">${msg}</p>
+    </div>`;
+  resultEl.classList.add('show');
+}
+
+/* ══════════════════════════════════════════════════════════
+   RECENTS
+══════════════════════════════════════════════════════════ */
+let recents = JSON.parse(localStorage.getItem('pf_recents') || '[]');
+
+function addToRecent(rawPlate, data) {
+  const plate = data.plate || formatPlate(rawPlate);
+  const entry = {
+    plate,
+    active: data.active,
+    zone: data.zone,
+    checkedAt: new Date().toISOString(),
+  };
+  // Rimuovi duplicato e reinserisci in cima
+  recents = [entry, ...recents.filter(r => r.plate !== plate)].slice(0, 10);
+  localStorage.setItem('pf_recents', JSON.stringify(recents));
+  renderRecents();
+}
+
+function renderRecents() {
+  const list = document.getElementById('recentList');
+  if (recents.length === 0) {
+    list.innerHTML = `<div class="empty-state">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <p>Nessuna verifica ancora.<br/>Inserisci una targa sopra per iniziare.</p>
+    </div>`;
+    return;
+  }
+  list.innerHTML = recents.map(r => `
+    <div class="recent-item" onclick="loadFromRecent('${r.plate}')">
+      <div class="recent-dot ${r.active ? 'ok' : 'nok'}"></div>
+      <div class="recent-plate">${r.plate}</div>
+      <div class="recent-meta">${fmtTime(new Date(r.checkedAt))}</div>
+      <div class="recent-badge ${r.active ? 'ok' : 'nok'}">${r.active ? 'Regolare' : 'Non pagata'}</div>
+    </div>`).join('');
+}
+
+function loadFromRecent(plate) {
+  const input = document.getElementById('plateInput');
+  input.value = plate.replace(/\s/g, '');
+  input.classList.remove('ok-border', 'nok-border');
+  doCheck();
+}
+
+/* ══════════════════════════════════════════════════════════
+   STATS MODAL
+══════════════════════════════════════════════════════════ */
+function showStats() {
+  const ok  = recents.filter(r => r.active).length;
+  const nok = recents.filter(r => !r.active).length;
+  alert(`📊 Riepilogo turno\n\nVerifiche totali: ${recents.length}\n✅ Regolari: ${ok}\n❌ Non pagate: ${nok}\n\nTurno iniziato alle: ${recents.length > 0 ? fmtTime(new Date(recents[recents.length-1].checkedAt)) : '—'}`);
+}
+
+function showInfo() {
+  alert('ParkFree Enforcement v1.0\n\nApp di verifica sosta per agenti autorizzati.\nI dati sono in tempo reale tramite API ParkFree.\n\nPer assistenza: enforcement@parkfree.it');
+}
+
+/* ══════════════════════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════════════════════ */
+function pad(n) { return String(Math.max(0, n)).padStart(2, '0'); }
+function fmtTime(d) { return new Date(d).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }); }
+function fmtDate(d) { return new Date(d).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
+function fmtDur(min) { if (!min) return '—'; const h = Math.floor(min/60); const m = min%60; return h > 0 ? `${h}h ${m > 0 ? m+'m' : ''}`.trim() : `${m}m`; }
+function formatPlate(raw) {
+  const p = raw.toUpperCase().replace(/\s/g,'');
+  if (p.length >= 7) return `${p.slice(0,2)} ${p.slice(2,5)}${p.slice(5)}`;
+  return p;
+}
+
+/* INIT */
+renderRecents();
+document.getElementById('plateInput').focus();
+</script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+{
+  "name": "parkfree-backend",
+  "version": "1.0.0",
+  "description": "ParkFree - Parking payment app backend",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "nodemon",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "keywords": ["parking", "payment", "stripe", "firebase"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "morgan": "^1.10.0",
+    "dotenv": "^16.3.1",
+    "pg": "^8.11.2",
+    "stripe": "^13.9.0",
+    "firebase-admin": "^12.0.0",
+    "jsonwebtoken": "^9.1.0",
+    "uuid": "^9.0.1",
+    "node-cron": "^3.0.2",
+    "express-rate-limit": "^7.3.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "@types/express": "^4.17.20",
+    "@types/cors": "^2.8.16",
+    "@types/morgan": "^1.9.7",
+    "@types/node": "^20.5.9",
+    "@types/node-cron": "^3.0.9",
+    "@types/pg": "^8.10.7",
+    "@types/uuid": "^9.0.6",
+    "@types/jsonwebtoken": "^9.0.4",
+    "@types/express-rate-limit": "^6.0.0",
+    "ts-node": "^10.9.1",
+    "nodemon": "^3.0.1"
+  }
+}

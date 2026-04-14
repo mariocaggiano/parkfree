@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "landing/index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "admin/index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "enforcement/index.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/landing(.*)",
+      "dest": "/landing/index.html"
+    },
+    {
+      "src": "/admin(.*)",
+      "dest": "/admin/index.html"
+    },
+    {
+      "src": "/enforcement(.*)",
+      "dest": "/enforcement/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/dist/$1"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

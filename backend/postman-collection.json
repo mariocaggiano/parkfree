@@ -1,0 +1,573 @@
+{
+  "info": {
+    "name": "ParkFree API",
+    "description": "Complete API collection for ParkFree parking payment application",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health & Info",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"{{firebase_id_token}}\",\n  \"email\": \"user@example.com\",\n  \"name\": \"John Doe\",\n  \"phone\": \"+39 123 456 7890\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"{{firebase_id_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Social Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"{{firebase_id_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/social-login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "social-login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_id_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "me"]
+            }
+          }
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_id_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Doe\",\n  \"phone\": \"+39 987 654 3210\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vehicles",
+      "item": [
+        {
+          "name": "List Vehicles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_id_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/vehicles",
+              "host": ["{{base_url}}"],
+              "path": ["api", "vehicles"]
+            }
+          }
+        },
+        {
+          "name": "Create Vehicle",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_id_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plate\": \"AB123CD\",\n  \"name\": \"My Tesla\",\n  \"isDefault\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/vehicles",
+              "host": ["{{base_url}}"],
+              "path": ["api", "vehicles"]
+            }
+          }
+        },
+        {
+          "name": "Update Vehicle",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_id_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My New Tesla\",\n  \"isDefault\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/vehicles/{{vehicle_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "vehicles", "{{vehicle_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Vehicle",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_id_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/vehicles/{{vehicle_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "vehicles", "{{vehicle_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Zones",
+      "item": [
+        {
+          "name": "List Zones (by Location)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/zones?lat=45.4642&lng=9.1826&radius=2000",
+              "host": ["{{base_url}}"],
+              "path": ["api", "zones"],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "45.4642",
+                  "description": "Latitude (Milan Duomo)"
+                },
+                {
+                  "key": "lng",
+                  "value": "9.1826",
+                  "description": "Longitude"
+                },
+                {
+                  "key": "radius",
+                  "value": "2000",
+                  "description": "Search radius in meters"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Zone Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/zones/{{zone_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "zones", "{{zone_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Parking Sessions",
+      "item": [
+        {
+          "name": "Start Parking Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_id_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleId\": \"{{vehicle_id}}\",\n  \"zoneId\": \"{{zone_id}}\",\n  \"durationMinutes\": 120,\n  \"paymentMethodId\": \"pm_stripe_id\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sessions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sessions"]
+            }
+          }
+        },
+        {
+          "name": "List Sessions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_id_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sessions?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sessions"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Session Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_id_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sessions/{{session_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sessions", "{{session_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Session Receipt",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_id_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sessions/{{session_id}}/receipt",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sessions", "{{session_id}}", "receipt"]
+            }
+          }
+        },
+        {
+          "name": "Extend Parking",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_id_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"extensionMinutes\": 60,\n  \"paymentMethodId\": \"pm_stripe_id\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sessions/{{session_id}}/extend",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sessions", "{{session_id}}", "extend"]
+            }
+          }
+        },
+        {
+          "name": "Stop Parking",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_id_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sessions/{{session_id}}/stop",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sessions", "{{session_id}}", "stop"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "List Payment Methods",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_id_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payments"]
+            }
+          }
+        },
+        {
+          "name": "Add Payment Method",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_id_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentMethodId\": \"pm_stripe_id\",\n  \"isDefault\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/payments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payments"]
+            }
+          }
+        },
+        {
+          "name": "Create Setup Intent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_id_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments/setup-intent",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payments", "setup-intent"]
+            }
+          }
+        },
+        {
+          "name": "Delete Payment Method",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_id_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments/{{payment_method_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payments", "{{payment_method_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Get Spending Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_id_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/analytics/spending?period=monthly&months=6",
+              "host": ["{{base_url}}"],
+              "path": ["api", "analytics", "spending"],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "monthly",
+                  "description": "weekly or monthly"
+                },
+                {
+                  "key": "months",
+                  "value": "6",
+                  "description": "Number of months to include"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Export Sessions as CSV",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_id_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/analytics/export",
+              "host": ["{{base_url}}"],
+              "path": ["api", "analytics", "export"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "firebase_id_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "zone_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "vehicle_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "session_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "payment_method_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
