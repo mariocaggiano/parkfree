@@ -1,44 +1,46 @@
 import * as admin from 'firebase-admin';
-import * as fs from 'fs';
-import * as path from 'path';
+import dotenv from 'dotenv';
 
-let app: admin.app.App;
+dotenv.config();
 
-export const initializeFirebase = (): admin.app.App => {
-  if (app) {
-    return app;
+let firebaseApp: admin.app.App | null = null;
+
+export function initializeFirebase(): admin.app.App | null {
+  if (firebaseApp) return firebaseApp;
+
+  try {
+    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+    if (!serviceAccountJson || serviceAccountJson === 'placeholder') {
+      console.warn('[Firebase] FIREBASE_SERVICE_ACCOUNT non configurato - Firebase disabilitato');
+      return null;
+    }
+
+    const serviceAccount = JSON.parse(serviceAccountJson);
+
+    if (!serviceAccount.project_id) {
+      console.warn('[Firebase] Service account mancante di project_id - Firebase disabilitato');
+      return null;
+    }
+
+    firebaseApp = admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+    });
+
+    console.log('[Firebase] Inizializzato con successo');
+    return firebaseApp;
+  } catch (error) {
+    console.warn('[Firebase] Errore inizializzazione (non critico):', error);
+    return null;
   }
+}
 
-  let serviceAccount: admin.ServiceAccount;
+export function getFirebaseAdmin(): admin.app.App | null {
+  return firebaseApp;
+}
 
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
-    const filePath = path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
-    const fileContent = fs.readFileSync(filePath, 'utf-8');
-    serviceAccount = JSON.parse(fileContent) as admin.ServiceAccount;
-  } else {
-    serviceAccount = {
-      projectId: process.env.FIREBASE_PROJECT_ID || '',
-      privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
-    };
-  }
-
-  app = admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    projectId: serviceAccount.projectId,
-  });
-
-  return app;
-};
-
-export const getAuth = (): admin.auth.Auth => {
-  const firebaseApp = initializeFirebase();
+export function getFirebaseAuth(): admin.auth.Auth | null {
+  if (!firebaseApp) return null;
   return admin.auth(firebaseApp);
-};
+}
 
-export const verifyIdToken = async (idToken: string): Promise<admin.auth.DecodedIdToken> => {
-  const auth = getAuth();
-  return auth.verifyIdToken(idToken);
-};
-
-export default initializeFirebase;
+export default admin;
