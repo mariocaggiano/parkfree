@@ -24,7 +24,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(helmet());
 
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000,https://parkfree.vercel.app')
   .split(',')
   .map((o) => o.trim());
 
@@ -47,7 +47,7 @@ app.use(
   })
 );
 
-// ─── Rate limiting ─────────────────────────────────────────────────────────────
+// âââ Rate limiting âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // Limita le richieste per prevenire brute force e abusi
 
 // Auth: 20 tentativi ogni 15 minuti per IP
@@ -95,10 +95,10 @@ app.use(
   })
 );
 
-// Raw body per Stripe webhook — DEVE stare prima di express.json()
+// Raw body per Stripe webhook â DEVE stare prima di express.json()
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 
-// SEC-003: body limit ridotto (10mb → 100kb) per prevenire attacchi DoS via payload
+// SEC-003: body limit ridotto (10mb â 100kb) per prevenire attacchi DoS via payload
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ limit: '100kb', extended: true }));
 
