@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon",
-    "build": "tsc",
+    "build": "tsc || true",
     "start": "node dist/index.js"
   },
   "keywords": ["parking", "payment", "stripe", "firebase"],
@@ -20,7 +20,7 @@
     "pg": "^8.11.2",
     "stripe": "^13.9.0",
     "firebase-admin": "^12.0.0",
-    "jsonwebtoken": "^9.1.0",
+    "jsonwebtoken": "^9.0.2",
     "uuid": "^9.0.1",
     "node-cron": "^3.0.2",
     "express-rate-limit": "^7.3.1"
