@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ParkFree – Parcheggia Facilmente</title>
+  <meta name="description" content="ParkFree: paga il parcheggio sulle strisce blu direttamente dal tuo smartphone. Niente biglietteria, niente code. Solo tu, l'auto e la libertà." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue:#2563EB;--indigo:#4F46E5;--teal:#0EA5E9;--green:#10B981;
+      --orange:#F59E0B;--red:#EF4444;--dark:#0F172A;--mid:#1E293B;
+      --muted:#64748B;--light:#F1F5F9;--white:#FFFFFF;
+      --radius:16px;--shadow:0 20px 60px rgba(0,0,0,.12);
+    }
+    html{scroll-behavior:smooth;}
+    body{font-family:'Inter',sans-serif;background:var(--white);color:var(--dark);overflow-x:hidden;}
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 5%;height:68px;background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,0,0,.06);transition:box-shadow .3s;}
+    nav.scrolled{box-shadow:0 4px 24px rgba(0,0,0,.08);}
+    .nav-logo{display:flex;align-items:center;gap:10px;font-size:1.35rem;font-weight:800;color:var(--blue);text-decoration:none;}
+    .nav-logo .badge{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--indigo));display:flex;align-items:center;justify-content:center;color:#fff;font-size:.95rem;font-weight:900;}
+    .nav-links{display:flex;gap:32px;list-style:none;}
+    .nav-links a{text-decoration:none;color:var(--muted);font-size:.9rem;font-weight:500;transition:color .2s;}
+    .nav-links a:hover{color:var(--blue);}
+    .nav-cta{background:linear-gradient(135deg,var(--blue),var(--indigo));color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:.9rem;font-weight:600;cursor:pointer;text-decoration:none;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 14px rgba(37,99,235,.35);}
+    .nav-cta:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(37,99,235,.45);}
+    .nav-mobile-btn{display:none;background:none;border:none;cursor:pointer;font-size:1.5rem;}
+    .hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:120px 5% 80px;background:linear-gradient(160deg,#EFF6FF 0%,#EDE9FE 50%,#E0F2FE 100%);position:relative;overflow:hidden;}
+    .hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.2);border-radius:100px;padding:6px 16px;font-size:.82rem;font-weight:600;color:var(--blue);margin-bottom:28px;animation:fadeDown .6s ease both;}
+    .hero-badge span{animation:pulse-dot 2s infinite;}
+    @keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:.4;}}
+    .hero h1{font-size:clamp(2.6rem,6vw,4.8rem);font-weight:900;line-height:1.1;letter-spacing:-.03em;max-width:820px;animation:fadeDown .7s .1s ease both;}
+    .hero h1 .gradient{background:linear-gradient(135deg,var(--blue) 0%,var(--indigo) 50%,var(--teal) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .hero p{font-size:clamp(1rem,2vw,1.22rem);color:var(--muted);max-width:560px;line-height:1.7;margin-top:20px;animation:fadeDown .7s .2s ease both;}
+    .hero-actions{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:36px;animation:fadeDown .7s .3s ease both;}
+    .btn-primary{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--blue),var(--indigo));color:#fff;border:none;border-radius:14px;padding:16px 32px;font-size:1rem;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 8px 28px rgba(37,99,235,.38);transition:transform .15s,box-shadow .15s;}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(37,99,235,.5);}
+    .btn-secondary{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.8);backdrop-filter:blur(8px);color:var(--dark);border:1.5px solid rgba(0,0,0,.1);border-radius:14px;padding:16px 32px;font-size:1rem;font-weight:600;cursor:pointer;text-decoration:none;transition:background .2s,border-color .2s;}
+    .btn-secondary:hover{background:#fff;border-color:var(--blue);color:var(--blue);}
+    .hero-stats{display:flex;gap:40px;margin-top:56px;flex-wrap:wrap;justify-content:center;animation:fadeDown .7s .4s ease both;}
+    .stat{text-align:center;}
+    .stat .num{font-size:2rem;font-weight:800;color:var(--blue);}
+    .stat .lbl{font-size:.82rem;color:var(--muted);font-weight:500;margin-top:2px;}
+    .hero-visual{position:relative;margin-top:72px;width:100%;max-width:900px;animation:fadeUp .8s .35s ease both;}
+    .phone-mockup{background:var(--dark);border-radius:44px;padding:12px;box-shadow:0 40px 80px rgba(0,0,0,.3),0 0 0 1px rgba(255,255,255,.06);max-width:340px;margin:0 auto;position:relative;}
+    .phone-screen{background:linear-gradient(160deg,#1E293B 0%,#0F172A 100%);border-radius:34px;overflow:hidden;padding:24px 20px 20px;min-height:560px;position:relative;}
+    .phone-status{display:flex;justify-content:space-between;align-items:center;font-size:.7rem;color:rgba(255,255,255,.5);margin-bottom:16px;}
+    .phone-map-bg{background:linear-gradient(135deg,#1a3a5c 0%,#1e4976 100%);border-radius:20px;height:220px;position:relative;overflow:hidden;margin-bottom:16px;}
+    .map-zone{position:absolute;border-radius:8px;opacity:.7;}
+    .map-zone-a{background:rgba(37,99,235,.6);width:80px;height:60px;top:30px;left:20px;border:2px solid #2563EB;}
+    .map-zone-b{background:rgba(16,185,129,.5);width:60px;height:50px;top:60px;left:80px;border:2px solid #10B981;}
+    .map-zone-c{background:rgba(245,158,11,.5);width:70px;height:55px;top:20px;right:20px;border:2px solid #F59E0B;}
+    .map-pin{position:absolute;top:50%;left:50%;width:32px;height:32px;background:var(--blue);border-radius:50% 50% 50% 0;transform:translate(-50%,-50%) rotate(-45deg);box-shadow:0 4px 12px rgba(37,99,235,.6);animation:pin-bounce 2s ease-in-out infinite;}
+    .map-pin::after{content:'';position:absolute;top:50%;left:50%;width:12px;height:12px;background:#fff;border-radius:50%;transform:translate(-50%,-50%);}
+    @keyframes pin-bounce{0%,100%{transform:translate(-50%,-60%) rotate(-45deg);}50%{transform:translate(-50%,-40%) rotate(-45deg);}}
+    .phone-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px;margin-bottom:12px;backdrop-filter:blur(8px);}
+    .phone-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+    .phone-card-name{font-size:.85rem;font-weight:700;color:#fff;}
+    .phone-card-price{font-size:.85rem;font-weight:700;color:var(--teal);}
+    .phone-card-sub{font-size:.72rem;color:rgba(255,255,255,.45);margin-top:2px;}
+    .phone-timer{display:flex;align-items:center;gap:10px;background:rgba(37,99,235,.2);border-radius:10px;padding:10px 14px;margin-bottom:12px;}
+    .timer-ring{width:36px;height:36px;flex-shrink:0;}
+    .timer-label{font-size:.75rem;color:rgba(255,255,255,.6);}
+    .timer-value{font-size:1.1rem;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;}
+    .phone-btn{display:block;width:100%;background:linear-gradient(135deg,var(--blue),var(--indigo));color:#fff;border:none;border-radius:12px;padding:13px;font-size:.9rem;font-weight:700;text-align:center;cursor:pointer;}
+    section{padding:100px 5%;}
+    .section-label{display:inline-block;font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);background:rgba(37,99,235,.08);border-radius:100px;padding:4px 14px;margin-bottom:16px;}
+    .section-title{font-size:clamp(1.8rem,3.5vw,3rem);font-weight:800;line-height:1.15;letter-spacing:-.02em;margin-bottom:16px;}
+    .section-sub{font-size:1.05rem;color:var(--muted);max-width:560px;line-height:1.7;}
+    .text-center{text-align:center;}
+    .mx-auto{margin-left:auto;margin-right:auto;}
+    #come-funziona{background:var(--dark);color:#fff;}
+    #come-funziona .section-label{background:rgba(255,255,255,.1);color:#93C5FD;}
+    #come-funziona .section-title{color:#fff;}
+    #come-funziona .section-sub{color:rgba(255,255,255,.55);}
+    .steps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px;margin-top:64px;}
+    .step-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:var(--radius);padding:36px 28px;position:relative;overflow:hidden;transition:transform .3s,background .3s;}
+    .step-card:hover{transform:translateY(-6px);background:rgba(255,255,255,.08);}
+    .step-number{position:absolute;top:20px;right:24px;font-size:5rem;font-weight:900;color:rgba(255,255,255,.04);line-height:1;user-select:none;}
+    .step-icon{width:60px;height:60px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin-bottom:24px;}
+    .step-icon-1{background:linear-gradient(135deg,#2563EB22,#4F46E522);}
+    .step-icon-2{background:linear-gradient(135deg,#10B98122,#059F7222);}
+    .step-icon-3{background:linear-gradient(135deg,#F59E0B22,#D9700022);}
+    .step-icon-4{background:linear-gradient(135deg,#EF444422,#DC262622);}
+    .step-title{font-size:1.15rem;font-weight:700;color:#fff;margin-bottom:10px;}
+    .step-desc{font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.65;}
+    .connector{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:48px;}
+    .connector-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2);}
+    .connector-dot.active{background:var(--blue);width:24px;border-radius:4px;}
+    #zone{background:var(--light);}
+    .zones-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;margin-top:56px;}
+    .zone-card{background:var(--white);border-radius:var(--radius);padding:28px 24px;box-shadow:0 4px 20px rgba(0,0,0,.06);border:2px solid transparent;transition:transform .25s,border-color .25s,box-shadow .25s;position:relative;overflow:hidden;}
+    .zone-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;}
+    .zone-card:nth-child(1)::before{background:linear-gradient(90deg,#2563EB,#4F46E5);}
+    .zone-card:nth-child(2)::before{background:linear-gradient(90deg,#10B981,#059F72);}
+    .zone-card:nth-child(3)::before{background:linear-gradient(90deg,#F59E0B,#D97706);}
+    .zone-card:nth-child(4)::before{background:linear-gradient(90deg,#EF4444,#DC2626);}
+    .zone-card:nth-child(5)::before{background:linear-gradient(90deg,#8B5CF6,#6D28D9);}
+    .zone-card:hover{transform:translateY(-4px);box-shadow:0 12px 36px rgba(0,0,0,.1);}
+    .zone-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+    .zone-badge{font-size:.72rem;font-weight:700;letter-spacing:.05em;border-radius:100px;padding:4px 12px;}
+    .badge-a{background:#DBEAFE;color:#1D4ED8;}
+    .badge-b{background:#D1FAE5;color:#065F46;}
+    .badge-c{background:#FEF3C7;color:#92400E;}
+    .badge-d{background:#FEE2E2;color:#991B1B;}
+    .badge-e{background:#EDE9FE;color:#5B21B6;}
+    .zone-price{font-size:1.6rem;font-weight:900;color:var(--dark);}
+    .zone-price sup{font-size:.9rem;font-weight:700;}
+    .zone-price .per{font-size:.8rem;font-weight:500;color:var(--muted);}
+    .zone-name{font-size:1.05rem;font-weight:700;margin-bottom:6px;}
+    .zone-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+    .zone-tag{display:flex;align-items:center;gap:5px;font-size:.78rem;color:var(--muted);background:var(--light);border-radius:8px;padding:4px 10px;}
+    .free-banner{margin-top:40px;background:linear-gradient(135deg,var(--dark),var(--mid));border-radius:var(--radius);padding:28px 32px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+    .free-banner .icon{font-size:2.4rem;flex-shrink:0;}
+    .free-banner h3{font-size:1.1rem;font-weight:700;color:#fff;}
+    .free-banner p{font-size:.9rem;color:rgba(255,255,255,.55);margin-top:4px;}
+    #faq{background:var(--white);}
+    .faq-list{max-width:760px;margin:56px auto 0;}
+    .faq-item{border-bottom:1px solid #E2E8F0;}
+    .faq-question{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:none;padding:22px 0;cursor:pointer;text-align:left;gap:16px;}
+    .faq-question span{font-size:1.02rem;font-weight:600;color:var(--dark);flex:1;}
+    .faq-icon{width:28px;height:28px;border-radius:50%;background:var(--light);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;color:var(--blue);transition:transform .3s,background .3s;}
+    .faq-item.open .faq-icon{transform:rotate(45deg);background:var(--blue);color:#fff;}
+    .faq-answer{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .3s;font-size:.95rem;color:var(--muted);line-height:1.7;padding:0;}
+    .faq-item.open .faq-answer{max-height:200px;padding-bottom:20px;}
+    #cta-final{background:linear-gradient(135deg,var(--blue) 0%,var(--indigo) 50%,#7C3AED 100%);padding:100px 5%;text-align:center;position:relative;overflow:hidden;}
+    #cta-final h2{font-size:clamp(2rem,4vw,3.2rem);font-weight:900;color:#fff;margin-bottom:16px;position:relative;}
+    #cta-final p{font-size:1.1rem;color:rgba(255,255,255,.7);margin-bottom:40px;position:relative;}
+    .btn-white{display:inline-flex;align-items:center;gap:10px;background:#fff;color:var(--blue);border:none;border-radius:14px;padding:18px 38px;font-size:1.05rem;font-weight:800;cursor:pointer;text-decoration:none;box-shadow:0 8px 28px rgba(0,0,0,.2);transition:transform .15s,box-shadow .15s;position:relative;}
+    .btn-white:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,0,0,.3);}
+    footer{background:var(--dark);color:rgba(255,255,255,.4);padding:48px 5%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;font-size:.85rem;}
+    footer .logo{font-weight:800;color:#fff;font-size:1rem;}
+    footer a{color:rgba(255,255,255,.4);text-decoration:none;}
+    footer a:hover{color:rgba(255,255,255,.8);}
+    @keyframes fadeDown{from{opacity:0;transform:translateY(-24px);}to{opacity:1;transform:translateY(0);}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(32px);}to{opacity:1;transform:translateY(0);}}
+    .reveal{opacity:0;transform:translateY(28px);transition:opacity .6s ease,transform .6s ease;}
+    .reveal.visible{opacity:1;transform:translateY(0);}
+    @media(max-width:768px){.nav-links{display:none;}.nav-mobile-btn{display:block;}.hero-stats{gap:24px;}.stat .num{font-size:1.6rem;}footer{flex-direction:column;text-align:center;}.free-banner{flex-direction:column;text-align:center;}}
+    @keyframes countdown{from{stroke-dashoffset:0;}to{stroke-dashoffset:251;}}
+    .timer-arc{animation:countdown 120s linear infinite;}
+  </style>
+</head>
+<body>
+<nav id="navbar">
+  <a class="nav-logo" href="#"><div class="badge">P</div>ParkFree</a>
+  <ul class="nav-links">
+    <li><a href="#come-funziona">Come funziona</a></li>
+    <li><a href="#zone">Zone & Prezzi</a></li>
+    <li><a href="#faq">FAQ</a></li>
+  </ul>
+  <a class="nav-cta" href="https://parkfree.vercel.app/login" target="_blank">Inizia gratis →</a>
+  <button class="nav-mobile-btn" onclick="this.closest('nav').querySelector('.nav-links').style.display=this.closest('nav').querySelector('.nav-links').style.display==='flex'?'none':'flex'">☰</button>
+</nav>
+<section class="hero">
+  <div class="hero-badge"><span>●</span> Disponibile a Milano · Altre città in arrivo</div>
+  <h1>Il parcheggio<br><span class="gradient">senza pensieri.</span></h1>
+  <p>Paga le strisce blu direttamente dal tuo smartphone. Niente biglietteria, niente code, niente multa per aver dimenticato. Solo tu, l'auto e la libertà.</p>
+  <div class="hero-actions">
+    <a class="btn-primary" href="https://parkfree.vercel.app/register" target="_blank">🚀 Inizia gratis — è immediato</a>
+    <a class="btn-secondary" href="#come-funziona">▷ Come funziona</a>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="num">5</div><div class="lbl">Zone Milano</div></div>
+    <div class="stat"><div class="num">€0</div><div class="lbl">Costo registrazione</div></div>
+    <div class="stat"><div class="num">30"</div><div class="lbl">Per avviare una sessione</div></div>
+    <div class="stat"><div class="num">100%</div><div class="lbl">Rimborso anticipato</div></div>
+  </div>
+  <div class="hero-visual">
+    <div class="phone-mockup">
+      <div class="phone-screen">
+        <div class="phone-status"><span>9:41</span><span>●●●</span></div>
+        <div class="phone-map-bg">
+          <div class="map-zone map-zone-a"></div>
+          <div class="map-zone map-zone-b"></div>
+          <div class="map-zone map-zone-c"></div>
+          <div class="map-pin"></div>
+        </div>
+        <div class="phone-timer">
+          <svg class="timer-ring" viewBox="0 0 40 40">
+            <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="3"/>
+            <circle cx="20" cy="20" r="16" fill="none" stroke="#2563EB" stroke-width="3" stroke-dasharray="100" stroke-dashoffset="25" stroke-linecap="round" transform="rotate(-90 20 20)"/>
+          </svg>
+          <div><div class="timer-label">Tempo rimanente</div><div class="timer-value" id="hero-timer">01:23:45</div></div>
+        </div>
+        <div class="phone-card">
+          <div class="phone-card-top">
+            <div><div class="phone-card-name">Centro Storico – Duomo</div><div class="phone-card-sub">Zona A · MI</div></div>
+            <div class="phone-card-price">€3.50/h</div>
+          </div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.35);">Targa: AB123CD · Totale: €7.00</div>
+        </div>
+        <button class="phone-btn">⏹ Termina sessione</button>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="come-funziona">
+  <div class="text-center">
+    <div class="section-label">Come funziona</div>
+    <h2 class="section-title reveal">Da zero a parcheggiato<br>in meno di un minuto.</h2>
+    <p class="section-sub mx-auto reveal" style="color:rgba(255,255,255,.5);">Quattro semplici passi e non avrai mai più bisogno di cercare una biglietteria.</p>
+  </div>
+  <div class="steps-grid">
+    <div class="step-card reveal"><div class="step-number">01</div><div class="step-icon step-icon-1">📍</div><div class="step-title">Trova la zona</div><div class="step-desc">Apri ParkFree e vedi sulla mappa le zone a pagamento intorno a te. Seleziona quella in cui ti trovi.</div></div>
+    <div class="step-card reveal"><div class="step-number">02</div><div class="step-icon step-icon-2">🚗</div><div class="step-title">Scegli veicolo e durata</div><div class="step-desc">Seleziona la tua auto registrata e imposta quanto tempo prevedi di restare. Vedi il costo in tempo reale.</div></div>
+    <div class="step-card reveal"><div class="step-number">03</div><div class="step-icon step-icon-3">💳</div><div class="step-title">Paga in un tap</div><div class="step-desc">Conferma con la tua carta salvata. Il pagamento va a buon fine in un secondo e il timer parte subito.</div></div>
+    <div class="step-card reveal"><div class="step-number">04</div><div class="step-icon step-icon-4">✅</div><div class="step-title">Termina quando vuoi</div><div class="step-desc">Torni prima? Termina la sessione e ti rimborsiamo automaticamente il tempo non utilizzato.</div></div>
+  </div>
+  <div class="connector">
+    <div class="connector-dot active"></div><div class="connector-dot"></div><div class="connector-dot"></div><div class="connector-dot"></div><div class="connector-dot"></div>
+  </div>
+</section>
+<section id="zone">
+  <div class="text-center">
+    <div class="section-label">Zone & Prezzi</div>
+    <h2 class="section-title reveal">Copriamo i quartieri<br>più frequentati di Milano.</h2>
+    <p class="section-sub mx-auto reveal">5 zone operative. Tariffe chiare, senza sorprese. Gratis la domenica e fuori dagli orari di punta.</p>
+  </div>
+  <div class="zones-grid">
+    <div class="zone-card reveal"><div class="zone-header"><span class="zone-badge badge-a">ZONA A</span><div class="zone-price"><sup>€</sup>3.50<span class="per">/ora</span></div></div><div class="zone-name">Centro Storico – Duomo</div><div class="zone-meta"><span class="zone-tag">🕗 Lun–Ven 08:00–20:00</span><span class="zone-tag">🕘 Sab 09:00–19:00</span><span class="zone-tag">⏱ Max 8 ore</span><span class="zone-tag">🆓 Dom gratuita</span></div></div>
+    <div class="zone-card reveal"><div class="zone-header"><span class="zone-badge badge-b">ZONA B</span><div class="zone-price"><sup>€</sup>2.50<span class="per">/ora</span></div></div><div class="zone-name">Navigli</div><div class="zone-meta"><span class="zone-tag">🕗 Lun–Ven 08:00–20:00</span><span class="zone-tag">🕘 Sab 09:00–19:00</span><span class="zone-tag">⏱ Max 10 ore</span><span class="zone-tag">🆓 Dom gratuita</span></div></div>
+    <div class="zone-card reveal"><div class="zone-header"><span class="zone-badge badge-c">ZONA C</span><div class="zone-price"><sup>€</sup>3.00<span class="per">/ora</span></div></div><div class="zone-name">Brera – Moscova</div><div class="zone-meta"><span class="zone-tag">🕗 Lun–Ven 08:00–20:00</span><span class="zone-tag">🕘 Sab 09:00–19:00</span><span class="zone-tag">⏱ Max 8 ore</span><span class="zone-tag">🆓 Dom gratuita</span></div></div>
+    <div class="zone-card reveal"><div class="zone-header"><span class="zone-badge badge-d">ZONA D</span><div class="zone-price"><sup>€</sup>2.00<span class="per">/ora</span></div></div><div class="zone-name">Sant'Ambrogio</div><div class="zone-meta"><span class="zone-tag">🕗 Lun–Ven 08:00–20:00</span><span class="zone-tag">🕘 Sab 09:00–19:00</span><span class="zone-tag">⏱ Max 12 ore</span><span class="zone-tag">🆓 Dom gratuita</span></div></div>
+    <div class="zone-card reveal"><div class="zone-header"><span class="zone-badge badge-e">ZONA E</span><div class="zone-price"><sup>€</sup>2.75<span class="per">/ora</span></div></div><div class="zone-name">Garibaldi – Centrale</div><div class="zone-meta"><span class="zone-tag">🕗 Lun–Ven 08:00–20:00</span><span class="zone-tag">🕘 Sab 09:00–19:00</span><span class="zone-tag">⏱ Max 9 ore</span><span class="zone-tag">🆓 Dom gratuita</span></div></div>
+  </div>
+  <div class="free-banner reveal"><div class="icon">🌙</div><div><h3>Parcheggio gratuito fuori orario</h3><p>Tutte le zone sono gratuite la domenica e dalle 20:00 alle 08:00 dei giorni feriali. ParkFree ti avvisa automaticamente quando sei in orario gratuito.</p></div></div>
+  <div style="margin-top:24px;background:#EFF6FF;border-radius:var(--radius);padding:20px 24px;display:flex;gap:12px;align-items:center;" class="reveal">
+    <span style="font-size:1.3rem;">💡</span>
+    <p style="font-size:.9rem;color:#1D4ED8;font-weight:500;">La commissione di servizio ParkFree è tra <strong>€0.25</strong> e <strong>€2.00</strong> per sessione — mai oltre, qualunque sia la durata.</p>
+  </div>
+</section>
+<section id="faq">
+  <div class="text-center">
+    <div class="section-label">FAQ</div>
+    <h2 class="section-title reveal">Hai domande?<br>Abbiamo le risposte.</h2>
+  </div>
+  <div class="faq-list">
+    <div class="faq-item"><button class="faq-question" onclick="toggleFaq(this)"><span>Come funziona il pagamento? Devo inserire la carta ogni volta?</span><div class="faq-icon">+</div></button><div class="faq-answer">No. Salvi la tua carta una sola volta nel profilo tramite il sicuro sistema Stripe. Da quel momento, ogni sessione viene addebitata automaticamente in un tap, senza re-inserire nulla.</div></div>
+    <div class="faq-item"><button class="faq-question" onclick="toggleFaq(this)"><span>Cosa succede se termino la sessione prima del previsto?</span><div class="faq-icon">+</div></button><div class="faq-answer">Ricevi un rimborso automatico sulla tua carta per il tempo non utilizzato. Il rimborso viene elaborato da Stripe entro 5–10 giorni lavorativi.</div></div>
+    <div class="faq-item"><button class="faq-question" onclick="toggleFaq(this)"><span>I miei dati di pagamento sono al sicuro?</span><div class="faq-icon">+</div></button><div class="faq-answer">Sì. ParkFree non memorizza mai i dati della carta. Utilizziamo Stripe, standard PCI DSS Level 1. I tuoi numeri di carta non transitano mai dai nostri sistemi.</div></div>
+    <div class="faq-item"><button class="faq-question" onclick="toggleFaq(this)"><span>Posso estendere il parcheggio se sono ancora fuori?</span><div class="faq-icon">+</div></button><div class="faq-answer">Sì. Dall'app puoi estendere la sessione in qualsiasi momento, finché non superi la durata massima della zona. Vedi sempre il costo prima di confermare.</div></div>
+    <div class="faq-item"><button class="faq-question" onclick="toggleFaq(this)"><span>ParkFree è valido legalmente? Evito la multa?</span><div class="faq-icon">+</div></button><div class="faq-answer">ParkFree opera in integrazione con i sistemi municipali di Milano. La sessione attiva è registrata digitalmente e consultabile dai verificatori.</div></div>
+    <div class="faq-item"><button class="faq-question" onclick="toggleFaq(this)"><span>Posso registrare più veicoli e più carte?</span><div class="faq-icon">+</div></button><div class="faq-answer">Sì, puoi aggiungere tutti i veicoli e metodi di pagamento che vuoi. Puoi impostare un veicolo e una carta come predefiniti per avviare le sessioni più velocemente.</div></div>
+  </div>
+</section>
+<section id="cta-final">
+  <h2>Inizia a parcheggiare meglio.<br>Oggi.</h2>
+  <p>Registrazione gratuita. Nessun abbonamento. Paghi solo il parcheggio.</p>
+  <a class="btn-white" href="https://parkfree.vercel.app/register" target="_blank">🚀 Crea il tuo account gratis</a>
+</section>
+<footer>
+  <div class="logo">🅿 ParkFree</div>
+  <div><a href="#come-funziona">Come funziona</a> · <a href="#zone">Zone</a> · <a href="#faq">FAQ</a> · <a href="https://parkfree.vercel.app" target="_blank">Accedi all'app</a></div>
+  <div>© 2026 ParkFree. Tutti i diritti riservati.</div>
+</footer>
+<script>
+  window.addEventListener('scroll',()=>{document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>10);});
+  const observer=new IntersectionObserver((entries)=>{entries.forEach((e,i)=>{if(e.isIntersecting){setTimeout(()=>e.target.classList.add('visible'),i*80);observer.unobserve(e.target);}});},{threshold:0.12});
+  document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+  function toggleFaq(btn){const item=btn.closest('.faq-item');const wasOpen=item.classList.contains('open');document.querySelectorAll('.faq-item.open').forEach(i=>i.classList.remove('open'));if(!wasOpen)item.classList.add('open');}
+  let secs=5025;
+  function updateTimer(){if(secs<=0)secs=5025;secs--;const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;document.getElementById('hero-timer').textContent=[h,m,s].map(n=>String(n).padStart(2,'0')).join(':');}
+  setInterval(updateTimer,1000);
+  const dots=document.querySelectorAll('.connector-dot');let activeDot=0;
+  setInterval(()=>{dots.forEach(d=>d.classList.remove('active'));activeDot=(activeDot+1)%dots.length;dots[activeDot].classList.add('active');},1200);
+</script>
+</body>
+</html>
