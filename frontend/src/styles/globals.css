@@ -935,10 +935,13 @@ main {
     grid-template-columns: repeat(3, 1fr);
   }
 
-  /* On tablet and up, navbar can be moved to side */
+  /* On tablet and up, navbar is a fixed left sidebar */
   .navbar {
-    position: relative;
-    bottom: auto;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: auto;
+    bottom: 0;
     border-top: none;
     border-right: 1px solid var(--color-light-secondary);
     width: 80px;
@@ -952,6 +955,7 @@ main {
 
   main {
     padding-bottom: var(--spacing-lg);
+    padding-left: 80px;
   }
 }
 
