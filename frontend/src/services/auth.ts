@@ -12,14 +12,16 @@ import {
   signOut as firebaseSignOut,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   OAuthProvider,
   RecaptchaVerifier,
   signInWithPhoneNumber,
   ConfirmationResult,
   updateProfile,
+  AuthError,
 } from 'firebase/auth';
 
-// Replace these with your actual Firebase config
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'YOUR_API_KEY',
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'YOUR_AUTH_DOMAIN',
@@ -32,7 +34,6 @@ const firebaseConfig = {
 let app: FirebaseApp;
 let auth: Auth;
 
-// Initialize Firebase
 const initFirebase = () => {
   if (!getApps().length) {
     app = initializeApp(firebaseConfig);
@@ -45,122 +46,127 @@ const initFirebase = () => {
 
 initFirebase();
 
+export const translateFirebaseError = (error: AuthError | Error): string => {
+  const code = (error as AuthError).code || '';
+  const messages: Record<string, string> = {
+    'auth/invalid-credential': 'Email o password non corretti.',
+    'auth/invalid-email': 'Indirizzo email non valido.',
+    'auth/user-disabled': 'Questo account è stato disabilitato.',
+    'auth/user-not-found': 'Nessun account trovato con questa email.',
+    'auth/wrong-password': 'Password non corretta.',
+    'auth/email-already-in-use': 'Questa email è già registrata.',
+    'auth/weak-password': 'La password deve essere di almeno 6 caratteri.',
+    'auth/operation-not-allowed': 'Metodo di accesso non abilitato.',
+    'auth/too-many-requests': 'Troppi tentativi. Riprova tra qualche minuto.',
+    'auth/network-request-failed': 'Errore di rete. Controlla la connessione.',
+    'auth/popup-closed-by-user': 'Finestra di accesso chiusa. Riprova.',
+    'auth/popup-blocked': 'Il browser ha bloccato il popup. Prova di nuovo o consenti i popup.',
+    'auth/cancelled-popup-request': 'Accesso annullato.',
+    'auth/account-exists-with-different-credential': 'Esiste già un account con questa email ma con metodo diverso.',
+    'auth/unauthorized-domain': 'Dominio non autorizzato per questo progetto Firebase.',
+    'auth/requires-recent-login': 'Sessione scaduta. Effettua di nuovo il login.',
+    'auth/invalid-verification-code': 'Codice OTP non valido.',
+    'auth/invalid-phone-number': 'Numero di telefono non valido. Usa il formato +39XXXXXXXXXX.',
+    'auth/missing-phone-number': 'Inserisci il numero di telefono.',
+    'auth/quota-exceeded': 'Limite SMS raggiunto. Riprova più tardi.',
+  };
+  return messages[code] || 'Si è verificato un errore. Riprova più tardi.';
+};
+
 export const authService = {
-  // Email/Password Auth
   signInWithEmail: async (email: string, password: string): Promise<User | null> => {
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
       return result.user;
     } catch (error) {
-      console.error('Error signing in with email:', error);
-      throw error;
+      throw new Error(translateFirebaseError(error as AuthError));
     }
   },
 
-  signUpWithEmail: async (
-    email: string,
-    password: string,
-    displayName: string
-  ): Promise<User | null> => {
+  signUpWithEmail: async (email: string, password: string, displayName: string): Promise<User | null> => {
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
-      const user = result.user;
-
-      // Update profile with display name
-      await updateProfile(user, { displayName });
-
-      return user;
+      await updateProfile(result.user, { displayName });
+      return result.user;
     } catch (error) {
-      console.error('Error signing up with email:', error);
-      throw error;
+      throw new Error(translateFirebaseError(error as AuthError));
     }
   },
 
-  // Google OAuth
   signInWithGoogle: async (): Promise<User | null> => {
+    const provider = new GoogleAuthProvider();
+    provider.addScope('profile');
+    provider.addScope('email');
     try {
-      const provider = new GoogleAuthProvider();
-      provider.addScope('profile');
-      provider.addScope('email');
-
       const result = await signInWithPopup(auth, provider);
       return result.user;
     } catch (error) {
-      console.error('Error signing in with Google:', error);
-      throw error;
+      const authError = error as AuthError;
+      if (['auth/popup-blocked', 'auth/popup-closed-by-user', 'auth/cancelled-popup-request'].includes(authError.code)) {
+        await signInWithRedirect(auth, provider);
+        return null;
+      }
+      throw new Error(translateFirebaseError(authError));
     }
   },
 
-  // Apple OAuth
   signInWithApple: async (): Promise<User | null> => {
+    const provider = new OAuthProvider('apple.com');
+    provider.addScope('email');
+    provider.addScope('name');
     try {
-      const provider = new OAuthProvider('apple.com');
-      provider.addScope('email');
-      provider.addScope('name');
-
       const result = await signInWithPopup(auth, provider);
       return result.user;
     } catch (error) {
-      console.error('Error signing in with Apple:', error);
-      throw error;
+      const authError = error as AuthError;
+      if (['auth/popup-blocked', 'auth/popup-closed-by-user', 'auth/cancelled-popup-request'].includes(authError.code)) {
+        await signInWithRedirect(auth, provider);
+        return null;
+      }
+      if (['auth/operation-not-allowed', 'auth/internal-error'].includes(authError.code)) {
+        throw new Error('Accesso con Apple non ancora disponibile. Usa email o Google.');
+      }
+      throw new Error(translateFirebaseError(authError));
     }
   },
 
-  // Phone number auth
+  checkRedirectResult: async (): Promise<User | null> => {
+    try {
+      const result = await getRedirectResult(auth);
+      return result ? result.user : null;
+    } catch (error) {
+      console.error('Redirect result error:', translateFirebaseError(error as AuthError));
+      return null;
+    }
+  },
+
   signInWithPhone: async (phoneNumber: string): Promise<ConfirmationResult> => {
     try {
-      // Setup recaptcha verifier
-      const recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-      });
-
-      const confirmationResult = await signInWithPhoneNumber(
-        auth,
-        phoneNumber,
-        recaptchaVerifier
-      );
-
-      return confirmationResult;
+      const recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
+      return await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
     } catch (error) {
-      console.error('Error sending phone verification:', error);
-      throw error;
+      throw new Error(translateFirebaseError(error as AuthError));
     }
   },
 
-  // Verify phone OTP
-  verifyPhoneOTP: async (
-    confirmationResult: ConfirmationResult,
-    otp: string
-  ): Promise<User | null> => {
+  verifyPhoneOTP: async (confirmationResult: ConfirmationResult, otp: string): Promise<User | null> => {
     try {
       const result = await confirmationResult.confirm(otp);
       return result.user;
     } catch (error) {
-      console.error('Error verifying OTP:', error);
-      throw error;
+      throw new Error(translateFirebaseError(error as AuthError));
     }
   },
 
-  // Sign out
   signOut: async (): Promise<void> => {
     try {
       await firebaseSignOut(auth);
     } catch (error) {
-      console.error('Error signing out:', error);
-      throw error;
+      throw new Error(translateFirebaseError(error as AuthError));
     }
   },
 
-  // Get current user
-  getCurrentUser: (): User | null => {
-    return auth.currentUser;
-  },
-
-  // Get auth state
+  getCurrentUser: (): User | null => auth.currentUser,
   getAuth: () => auth,
-
-  // Listen to auth state changes
-  onAuthStateChanged: (callback: (user: User | null) => void) => {
-    return auth.onAuthStateChanged(callback);
-  },
+  onAuthStateChanged: (callback: (user: User | null) => void) => auth.onAuthStateChanged(callback),
 };
