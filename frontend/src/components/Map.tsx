@@ -1,5 +1,4 @@
-import { useEffect } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { ParkingZone } from '../types'
@@ -29,14 +28,6 @@ interface MapProps {
   zoom?: number
 }
 
-function LocateControl() {
-  const map = useMap()
-  useEffect(() => {
-    map.locate({ setView: true, maxZoom: 15 })
-  }, [map])
-  return null
-}
-
 export default function Map({
   onZoneSelect,
   zones = [],
@@ -60,39 +51,14 @@ export default function Map({
           position={[zone.coordinates.latitude, zone.coordinates.longitude]}
           icon={parkingIcon}
           eventHandlers={{
-            click: () => {
-              if (onZoneSelect) onZoneSelect(zone)
-            },
+            click: () => onZoneSelect && onZoneSelect(zone),
           }}
         >
           <Popup>
-            <div className="text-sm min-w-[180px]">
-              <h3 className="font-bold text-base mb-1">{zone.name}</h3>
-              <p className="text-xs text-gray-600 mb-2">{zone.city}</p>
-              <div className="flex justify-between gap-3 mb-2">
-                <span>Tariffa: {zone.hourlyRate}€/h</span>
-                <span>Max: {zone.maxDuration}h</span>
-              </div>
-              <p className="text-xs text-gray-500">
-                {zone.operatingHours.start} - {zone.operatingHours.end}
-              </p>
-              <button
-                onClick={() => onZoneSelect && onZoneSelect(zone)}
-                style={{
-                  marginTop: '8px',
-                  width: '100%',
-                  padding: '6px 12px',
-                  backgroundColor: '#2E86C1',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                }}
-              >
-                Parcheggia qui
-              </button>
+            <div className="popup-content">
+              <strong>{zone.name}</strong>
+              <p>{zone.hourlyRate}€/ora</p>
+              <p>Max {zone.maxDuration}h</p>
             </div>
           </Popup>
         </Marker>
