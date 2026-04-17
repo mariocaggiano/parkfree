@@ -19,6 +19,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Handle OAuth redirect result (Google/Apple fallback flow)
+    authService.checkRedirectResult().catch((err) => {
+      console.error('checkRedirectResult error:', err);
+    });
+
+    // Subscribe to auth state changes
     const unsubscribe = authService.onAuthStateChanged((currentUser) => {
       setUser(currentUser);
       setLoading(false);
