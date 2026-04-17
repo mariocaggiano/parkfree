@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ChevronDown, Download } from 'lucide-react'
-import { ParkingSession } from '../types'
+import { ParkingSession, Vehicle } from '../types'
 import { formatCurrency, formatDuration, formatDateTime } from '../utils/formatters'
 import { parkingAPI } from '../services/api'
 
