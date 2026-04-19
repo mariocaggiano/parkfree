@@ -8,7 +8,6 @@ interface AuthContextType {
   signInWithEmail: (email: string, password: string) => Promise<User | null>;
   signUpWithEmail: (email: string, password: string, displayName: string) => Promise<User | null>;
   signInWithGoogle: () => Promise<User | null>;
-  signInWithApple: () => Promise<User | null>;
   signOut: () => Promise<void>;
 }
 
@@ -19,7 +18,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Handle OAuth redirect result (Google/Apple fallback flow)
+    // Handle OAuth redirect result (Google fallback flow)
     authService.checkRedirectResult().catch((err) => {
       console.error('checkRedirectResult error:', err);
     });
@@ -39,7 +38,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signInWithEmail: authService.signInWithEmail,
     signUpWithEmail: authService.signUpWithEmail,
     signInWithGoogle: authService.signInWithGoogle,
-    signInWithApple: authService.signInWithApple,
     signOut: authService.signOut,
   };
 
