@@ -1,243 +1,162 @@
 import { useState, useEffect } from 'react'
-import { Gift, Copy, Check, Users, Euro, Share2 } from 'lucide-react'
-import { parkingAPI } from '../services/api'
-
-interface ReferralStats {
-  code: string
-  invitesSent: number
-  invitesAccepted: number
-  creditsEarned: number
-  creditsAvailable: number
-  referralHistory: ReferralEntry[]
-}
-
-interface ReferralEntry {
-  id: string
-  inviteeName: string
-  acceptedAt: string
-  creditEarned: number
-  status: 'pending' | 'completed'
-}
-
-// Dati demo
-const DEMO_STATS: ReferralStats = {
-  code: 'PARK-MARIO7',
-  invitesSent: 5,
-  invitesAccepted: 3,
-  creditsEarned: 3.0,
-  creditsAvailable: 1.5,
-  referralHistory: [
-    { id: 'r1', inviteeName: 'Luca B.', acceptedAt: new Date(Date.now() - 7 * 86400000).toISOString(), creditEarned: 1.0, status: 'completed' },
-    { id: 'r2', inviteeName: 'Sara M.', acceptedAt: new Date(Date.now() - 14 * 86400000).toISOString(), creditEarned: 1.0, status: 'completed' },
-    { id: 'r3', inviteeName: 'Marco R.', acceptedAt: new Date(Date.now() - 2 * 86400000).toISOString(), creditEarned: 1.0, status: 'completed' },
-    { id: 'r4', inviteeName: 'Anna T.', acceptedAt: new Date().toISOString(), creditEarned: 1.0, status: 'pending' },
-    { id: 'r5', inviteeName: 'Giorgio F.', acceptedAt: new Date().toISOString(), creditEarned: 1.0, status: 'pending' },
-  ],
-}
+import { Loader, Copy, Check, Gift, Users } from 'lucide-react'
+import { referralService, ReferralInfo } from '../services/firestore'
+import { formatCurrency } from '../utils/formatters'
+import { useAuth } from '../hooks/useAuth'
 
 export default function ReferralPage() {
-  const [stats, setStats] = useState<ReferralStats>(DEMO_STATS)
+  const { user } = useAuth()
+  const [info, setInfo] = useState<ReferralInfo | null>(null)
+  const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
-  const [shareLoading, setShareLoading] = useState(false)
+  const [codeInput, setCodeInput] = useState('')
+  const [applying, setApplying] = useState(false)
+  const [applyMessage, setApplyMessage] = useState<{
+    text: string
+    success: boolean
+  } | null>(null)
 
   useEffect(() => {
-    const fetchReferral = async () => {
-      try {
-        const res = await parkingAPI.getReferralStats()
-        if (res.data) setStats(res.data)
-      } catch {
-        // Usa dati demo
-      }
-    }
-    fetchReferral()
-  }, [])
+    if (!user) return
+    setLoading(true)
+    referralService
+      .getInfo()
+      .then(setInfo)
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [user])
 
-  const referralLink = `https://parkfree.it/invito/${stats.code}`
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(referralLink)
+  const handleCopy = () => {
+    if (!info?.code) return
+    navigator.clipboard.writeText(info.code).then(() => {
       setCopied(true)
-      setTimeout(() => setCopied(false), 2500)
-    } catch {
-      // Fallback
-    }
+      setTimeout(() => setCopied(false), 2000)
+    })
   }
 
-  const handleShare = async () => {
-    setShareLoading(true)
+  const handleApplyCode = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!codeInput.trim()) return
+    setApplying(true)
+    setApplyMessage(null)
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: 'ParkFree — Parcheggia in un tap',
-          text: `Prova ParkFree per pagare le strisce blu! Usiamo il mio codice e otteniamo entrambi 1€ di credito: ${stats.code}`,
-          url: referralLink,
-        })
-      } else {
-        handleCopy()
-      }
+      const result = await referralService.applyCode(codeInput.trim())
+      setApplyMessage({ text: result.message, success: result.success })
+      if (result.success) setCodeInput('')
     } catch {
-      // Ignorato (es. utente ha annullato)
+      setApplyMessage({
+        text: "Errore durante l'applicazione del codice",
+        success: false,
+      })
     } finally {
-      setShareLoading(false)
+      setApplying(false)
     }
   }
 
-  const formatDate = (iso: string) =>
-    new Date(iso).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })
-
-  const conversionRate = stats.invitesSent > 0
-    ? Math.round((stats.invitesAccepted / stats.invitesSent) * 100)
-    : 0
+  if (loading) {
+    return (
+      <main className="bg-light min-h-screen flex items-center justify-center">
+        <Loader size={32} className="animate-spin text-primary" />
+      </main>
+    )
+  }
 
   return (
     <main className="bg-light min-h-screen">
       <div className="container py-6">
-        <h1 className="text-3xl font-bold text-dark mb-2">Invita Amici</h1>
+        <h1 className="text-3xl font-bold text-dark mb-2">Programma Referral</h1>
         <p className="text-gray text-sm mb-8">
-          Per ogni amico che si registra e parcheggia, guadagnate entrambi 1&nbsp;€ di credito.
+          Invita amici e guadagna crediti per i tuoi parcheggi
         </p>
-
-        {/* Hero card */}
-        <div
-          className="rounded-2xl p-6 mb-6 text-white"
-          style={{ background: 'linear-gradient(135deg, #2E86C1 0%, #1A5276 100%)' }}
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-white bg-opacity-20 rounded-xl p-3">
-              <Gift size={24} className="text-white" />
-            </div>
-            <div>
-              <p className="text-sm opacity-80">Il tuo codice personale</p>
-              <p className="text-2xl font-bold tracking-wider">{stats.code}</p>
-            </div>
-          </div>
-
-          {/* Link copiabile */}
-          <div className="bg-white bg-opacity-10 rounded-xl p-3 flex items-center justify-between gap-3 mb-4">
-            <p className="text-sm opacity-90 truncate flex-1">{referralLink}</p>
-            <button
-              onClick={handleCopy}
-              className="flex-shrink-0 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg p-2 transition"
-              title="Copia link"
-            >
-              {copied ? <Check size={18} /> : <Copy size={18} />}
-            </button>
-          </div>
-
-          <button
-            onClick={handleShare}
-            disabled={shareLoading}
-            className="w-full bg-white text-primary font-bold rounded-xl py-3 flex items-center justify-center gap-2 hover:bg-opacity-90 transition"
-          >
-            <Share2 size={20} />
-            {shareLoading ? 'Condivisione…' : 'Condividi con un amico'}
-          </button>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="card text-center py-4">
-            <p className="text-2xl font-bold text-primary">{stats.invitesSent}</p>
-            <p className="text-xs text-gray mt-1">Inviti inviati</p>
-          </div>
-          <div className="card text-center py-4">
-            <p className="text-2xl font-bold text-accent">{stats.invitesAccepted}</p>
-            <p className="text-xs text-gray mt-1">Accettati</p>
-          </div>
-          <div className="card text-center py-4">
-            <p className="text-2xl font-bold text-dark">{conversionRate}%</p>
-            <p className="text-xs text-gray mt-1">Conversione</p>
-          </div>
-        </div>
-
-        {/* Crediti disponibili */}
-        <div className="card mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-accent bg-opacity-10 rounded-xl p-3">
-              <Euro size={22} className="text-accent" />
-            </div>
-            <div>
-              <p className="text-sm text-gray">Crediti disponibili</p>
-              <p className="text-2xl font-bold text-accent">
-                {stats.creditsAvailable.toFixed(2)} €
-              </p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-gray">Guadagnati totale</p>
-            <p className="text-lg font-bold text-dark">{stats.creditsEarned.toFixed(2)} €</p>
-          </div>
-        </div>
 
         {/* Come funziona */}
         <div className="card mb-6">
-          <h3 className="text-lg font-bold text-dark mb-4 flex items-center gap-2">
-            <Users size={20} className="text-primary" />
-            Come funziona
-          </h3>
-          <div className="space-y-4">
+          <h2 className="text-lg font-bold text-dark mb-4">Come funziona</h2>
+          <div className="space-y-3">
             {[
-              { step: '1', label: 'Condividi il tuo codice', desc: 'Invia il link o il codice a un amico tramite WhatsApp, SMS o email.' },
-              { step: '2', label: "L'amico si registra", desc: "Usa il tuo codice durante la registrazione e ottiene 1 € di sconto sulla prima sessione." },
-              { step: '3', label: 'Guadagnate entrambi', desc: 'Dopo la prima sessione completata, ricevi automaticamente 1 € di credito sul tuo account.' },
-            ].map(({ step, label, desc }) => (
-              <div key={step} className="flex items-start gap-4">
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-sm flex-shrink-0"
-                  style={{ background: 'linear-gradient(135deg, #2E86C1, #27AE60)' }}
-                >
-                  {step}
+              {
+                step: '1',
+                title: 'Condividi il tuo codice',
+                desc: 'Invia il tuo codice personale agli amici',
+              },
+              {
+                step: '2',
+                title: 'Il tuo amico si registra',
+                desc: 'Usa il tuo codice durante la registrazione',
+              },
+              {
+                step: '€',
+                title: 'Entrambi guadagnate',
+                desc: 'Tu ricevi €2.00, il tuo amico riceve €1.00',
+              },
+            ].map((item) => (
+              <div key={item.step} className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  {item.step}
                 </div>
                 <div>
-                  <p className="font-semibold text-dark text-sm">{label}</p>
-                  <p className="text-gray text-xs mt-0.5">{desc}</p>
+                  <p className="font-semibold text-dark text-sm">{item.title}</p>
+                  <p className="text-gray text-xs">{item.desc}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Storico */}
+        {/* Il tuo codice */}
+        <div className="card mb-6">
+          <h2 className="text-lg font-bold text-dark mb-3">Il tuo codice personale</h2>
+          <div className="flex items-center gap-3 bg-light-secondary rounded-lg p-4">
+            <p className="text-2xl font-bold text-primary tracking-widest flex-1">
+              {info?.code || '—'}
+            </p>
+            <button onClick={handleCopy} className="btn btn-primary gap-2">
+              {copied ? <Check size={18} /> : <Copy size={18} />}
+              {copied ? 'Copiato!' : 'Copia'}
+            </button>
+          </div>
+        </div>
+
+        {/* Statistiche */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="card text-center">
+            <Users size={28} className="text-primary mx-auto mb-2" />
+            <p className="text-2xl font-bold text-dark">{info?.referredUsers ?? 0}</p>
+            <p className="text-gray text-xs">Amici invitati</p>
+          </div>
+          <div className="card text-center">
+            <Gift size={28} className="text-accent mx-auto mb-2" />
+            <p className="text-2xl font-bold text-dark">
+              {formatCurrency(info?.totalEarned ?? 0)}
+            </p>
+            <p className="text-gray text-xs">Crediti guadagnati</p>
+          </div>
+        </div>
+
+        {/* Applica codice amico */}
         <div className="card">
-          <h3 className="text-lg font-bold text-dark mb-4">Storico inviti</h3>
-          {stats.referralHistory.length === 0 ? (
-            <div className="text-center py-8">
-              <Gift size={32} className="text-gray mx-auto mb-3" />
-              <p className="text-gray text-sm">Nessun invito ancora inviato.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {stats.referralHistory.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="flex items-center justify-between py-3 border-b border-light-secondary last:border-0"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm"
-                      style={{ background: '#EBF5FB', color: '#2E86C1' }}
-                    >
-                      {entry.inviteeName[0]}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-dark text-sm">{entry.inviteeName}</p>
-                      <p className="text-xs text-gray">{formatDate(entry.acceptedAt)}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    {entry.status === 'completed' ? (
-                      <span className="text-accent font-bold text-sm">+{entry.creditEarned.toFixed(2)} €</span>
-                    ) : (
-                      <span className="text-gray text-xs">In attesa</span>
-                    )}
-                    <p className="text-xs text-gray mt-0.5">
-                      {entry.status === 'completed' ? 'Accreditato' : 'Deve parcheggiare'}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <h2 className="text-lg font-bold text-dark mb-3">Hai un codice amico?</h2>
+          <form onSubmit={handleApplyCode} className="flex gap-3">
+            <input
+              type="text"
+              value={codeInput}
+              onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+              placeholder="Es. PFABC123"
+              className="form-input flex-1"
+              maxLength={10}
+            />
+            <button type="submit" className="btn btn-accent" disabled={applying}>
+              {applying ? <Loader size={18} className="animate-spin" /> : 'Applica'}
+            </button>
+          </form>
+          {applyMessage && (
+            <p
+              className={`mt-3 text-sm font-semibold ${
+                applyMessage.success ? 'text-success' : 'text-error'
+              }`}
+            >
+              {applyMessage.text}
+            </p>
           )}
         </div>
       </div>
