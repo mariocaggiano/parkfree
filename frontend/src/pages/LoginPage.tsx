@@ -1,23 +1,25 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { Mail, Lock, Smartphone, Globe } from 'lucide-react'
 import { authService } from '../services/auth'
 import { ConfirmationResult } from 'firebase/auth'
+import { Mail, Lock, Smartphone, Globe } from 'lucide-react'
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { signInWithEmail, signInWithGoogle, signInWithApple } = useAuth()
+  const { signInWithEmail, signInWithGoogle } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [phoneNumber, setPhoneNumber] = useState('')
-  const [showOtp, setShowOtp] = useState(false)
-  const [otpSent, setOtpSent] = useState(false)
-  const [otp, setOtp] = useState('')
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Phone OTP state
+  const [showPhone, setShowPhone] = useState(false)
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [otp, setOtp] = useState('')
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
+  const [otpSent, setOtpSent] = useState(false)
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,19 +48,6 @@ export default function LoginPage() {
     }
   }
 
-  const handleAppleLogin = async () => {
-    setError('')
-    setLoading(true)
-    try {
-      await signInWithApple()
-      navigate('/')
-    } catch (err: any) {
-      setError(err.message || 'Errore durante il login con Apple')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleSendOtp = async () => {
     if (!phoneNumber.trim()) {
       setError('Inserisci il numero di telefono')
@@ -67,25 +56,25 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      const result = await authService.signInWithPhone(phoneNumber)
+      const result = await authService.signInWithPhone(phoneNumber.trim())
       setConfirmationResult(result)
       setOtpSent(true)
     } catch (err: any) {
-      setError(err.message || 'Errore nell\'invio del codice OTP')
+      setError(err.message || 'Errore invio SMS')
     } finally {
       setLoading(false)
     }
   }
 
   const handleVerifyOtp = async () => {
-    if (!otp.trim() || !confirmationResult) {
-      setError('Inserisci il codice OTP ricevuto via SMS')
+    if (!confirmationResult || !otp.trim()) {
+      setError('Inserisci il codice OTP ricevuto')
       return
     }
     setError('')
     setLoading(true)
     try {
-      await authService.verifyPhoneOTP(confirmationResult, otp)
+      await authService.verifyPhoneOTP(confirmationResult, otp.trim())
       navigate('/')
     } catch (err: any) {
       setError(err.message || 'Codice OTP non valido')
@@ -97,7 +86,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        {/* Logo */}
+        {/* Logo/Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full mb-4">
             <div className="text-2xl font-bold text-primary">P</div>
@@ -107,15 +96,16 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-4">
+          {/* Error banner */}
+          {error && (
+            <div className="bg-error bg-opacity-10 border border-error rounded-lg p-4">
+              <p className="text-error text-sm">{error}</p>
+            </div>
+          )}
+
           {/* Email Login */}
           <form onSubmit={handleEmailLogin} className="card">
             <h2 className="text-xl font-bold mb-4 text-dark">Accedi con Email</h2>
-
-            {error && (
-              <div className="bg-error bg-opacity-10 border border-error rounded-lg p-4 mb-4">
-                <p className="text-error text-sm">{error}</p>
-              </div>
-            )}
 
             <div className="form-group">
               <label className="form-label">Email</label>
@@ -140,7 +130,7 @@ export default function LoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="La tua password"
+                  placeholder="••••••••"
                   className="form-input pl-10"
                   required
                 />
@@ -152,7 +142,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Social Login */}
+          {/* Google */}
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
@@ -162,67 +152,65 @@ export default function LoginPage() {
             Accedi con Google
           </button>
 
+          {/* Phone OTP */}
           <button
-            onClick={handleAppleLogin}
-            disabled={loading}
-            className="btn btn-secondary w-full gap-2"
-          >
-            <Smartphone size={20} />
-            Accedi con Apple
-          </button>
-
-          {/* Phone Login */}
-          <button
-            onClick={() => setShowOtp(!showOtp)}
+            onClick={() => { setShowPhone(!showPhone); setError('') }}
             className="btn btn-outline w-full gap-2"
           >
             <Smartphone size={20} />
-            {showOtp ? 'Nascondi' : 'Accedi con Telefono'}
+            {showPhone ? 'Nascondi' : 'Accedi con Telefono'}
           </button>
 
-          {showOtp && (
+          {showPhone && (
             <div className="card">
-              <div className="form-group">
-                <label className="form-label">Numero di Telefono</label>
-                <input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="+39 333 1234567"
-                  className="form-input"
-                  disabled={otpSent}
-                />
-              </div>
-
               {!otpSent ? (
-                <button
-                  onClick={handleSendOtp}
-                  disabled={loading}
-                  className="btn btn-primary w-full"
-                >
-                  {loading ? 'Invio in corso...' : 'Invia Codice OTP'}
-                </button>
+                <>
+                  <div className="form-group">
+                    <label className="form-label">Numero di Telefono</label>
+                    <input
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="+39 XXX XXXXXXX"
+                      className="form-input"
+                    />
+                  </div>
+                  <button
+                    onClick={handleSendOtp}
+                    disabled={loading}
+                    className="btn btn-primary w-full"
+                  >
+                    {loading ? 'Invio SMS...' : 'Invia Codice OTP'}
+                  </button>
+                </>
               ) : (
                 <>
+                  <p className="text-sm text-gray mb-4">
+                    SMS inviato a {phoneNumber}. Inserisci il codice ricevuto.
+                  </p>
                   <div className="form-group">
                     <label className="form-label">Codice OTP</label>
                     <input
                       type="text"
                       value={otp}
                       onChange={(e) => setOtp(e.target.value)}
-                      placeholder="123456"
-                      className="form-input text-center text-xl"
+                      placeholder="000000"
+                      className="form-input text-center text-2xl tracking-widest"
                       maxLength={6}
-                      autoFocus
                     />
-                    <p className="form-help">Inserisci il codice a 6 cifre ricevuto via SMS</p>
                   </div>
                   <button
                     onClick={handleVerifyOtp}
-                    disabled={loading || otp.length < 6}
+                    disabled={loading}
                     className="btn btn-primary w-full"
                   >
-                    {loading ? 'Verifica in corso...' : 'Verifica OTP'}
+                    {loading ? 'Verifica...' : 'Verifica OTP'}
+                  </button>
+                  <button
+                    onClick={() => { setOtpSent(false); setOtp('') }}
+                    className="btn btn-ghost w-full mt-2 text-sm"
+                  >
+                    Cambia numero
                   </button>
                 </>
               )}
@@ -230,26 +218,22 @@ export default function LoginPage() {
           )}
         </div>
 
-        {/* Link registrazione */}
+        {/* Register Link */}
         <div className="mt-6 text-center">
           <p className="text-white text-opacity-90">
             Non hai un account?{' '}
-            <Link
-              to="/register"
-              className="text-white font-semibold underline hover:no-underline"
-            >
+            <Link to="/register" className="text-white font-semibold underline hover:no-underline">
               Registrati
             </Link>
           </p>
         </div>
 
-        {/* Footer */}
         <div className="mt-8 text-center text-white text-opacity-75 text-xs">
-          <p>Accedendo accetti i nostri Termini di Servizio e l'Informativa sulla Privacy</p>
+          <p>Accedendo accetti i nostri Termini e la Privacy Policy</p>
         </div>
       </div>
 
-      {/* Container per reCAPTCHA (richiesto da Firebase Phone Auth) */}
+      {/* Recaptcha container for phone auth */}
       <div id="recaptcha-container"></div>
     </div>
   )
