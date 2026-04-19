@@ -1,70 +1,78 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { LogOut, CreditCard, Edit2, Trash2, Plus } from 'lucide-react'
-import { PaymentMethod } from '../types'
+import { LogOut, Edit2, Save, X, Loader, User, MapPin, CreditCard } from 'lucide-react'
+import { profileService, UserProfile } from '../services/firestore'
 
 export default function ProfilePage() {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
 
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
-    {
-      id: 'pm1',
-      userId: 'user1',
-      type: 'card',
-      last4: '4242',
-      brand: 'Visa',
-      expiryMonth: 12,
-      expiryYear: 2025,
-      isDefault: true,
-      createdAt: new Date().toISOString(),
-    },
-  ])
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [formData, setFormData] = useState({
+    displayName: '',
+    city: '',
+    phoneNumber: '',
+  })
 
-  const [showAddPayment, setShowAddPayment] = useState(false)
+  useEffect(() => {
+    if (!user) return
+    setLoading(true)
+    profileService
+      .get()
+      .then((p) => {
+        if (p) {
+          setProfile(p)
+          setFormData({
+            displayName: p.displayName || '',
+            city: p.city || '',
+            phoneNumber: p.phoneNumber || '',
+          })
+        } else {
+          // Prima volta: crea profilo da Firebase Auth
+          const initial = {
+            displayName: user.displayName || '',
+            email: user.email || '',
+            phoneNumber: user.phoneNumber || '',
+          }
+          profileService.createOrUpdate(initial).then(() =>
+            profileService.get().then(setProfile)
+          )
+          setFormData({
+            displayName: user.displayName || '',
+            city: '',
+            phoneNumber: user.phoneNumber || '',
+          })
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [user])
 
-  const handleAddPaymentMethod = async () => {
-    // Stripe tokenization: card data is handled securely by Stripe.js
-    // Never store raw card numbers, CVV, or expiry in component state
+  const handleSave = async () => {
+    setSaving(true)
     try {
-      // In production: use Stripe Elements or redirect to Stripe Checkout
-      // const { error, paymentMethod } = await stripe.createPaymentMethod({...})
-      // Then call POST /api/payments/methods with paymentMethod.id
-
-      // Demo: simulate adding a payment method
-      const newPaymentMethod: PaymentMethod = {
-        id: Date.now().toString(),
-        userId: user?.uid || '',
-        type: 'card',
-        last4: '4242',
-        brand: 'Visa',
-        expiryMonth: 12,
-        expiryYear: 2028,
-        isDefault: paymentMethods.length === 0,
-        createdAt: new Date().toISOString(),
-      }
-
-      setPaymentMethods([...paymentMethods, newPaymentMethod])
-      setShowAddPayment(false)
-    } catch (error) {
-      console.error('Errore aggiunta metodo di pagamento:', error)
+      await profileService.createOrUpdate({
+        displayName: formData.displayName,
+        city: formData.city,
+        phoneNumber: formData.phoneNumber,
+        email: user?.email || '',
+      })
+      setProfile((prev) =>
+        prev
+          ? { ...prev, ...formData, updatedAt: new Date().toISOString() }
+          : null
+      )
+      setEditing(false)
+    } catch (err) {
+      console.error(err)
+      alert('Errore durante il salvataggio del profilo')
+    } finally {
+      setSaving(false)
     }
-  }
-
-  const handleDeletePaymentMethod = (id: string) => {
-    if (window.confirm('Vuoi eliminare questo metodo di pagamento?')) {
-      setPaymentMethods(paymentMethods.filter((pm) => pm.id !== id))
-    }
-  }
-
-  const handleSetDefault = (id: string) => {
-    setPaymentMethods(
-      paymentMethods.map((pm) => ({
-        ...pm,
-        isDefault: pm.id === id,
-      }))
-    )
   }
 
   const handleLogout = async () => {
@@ -74,174 +82,178 @@ export default function ProfilePage() {
     }
   }
 
+  if (loading) {
+    return (
+      <main className="bg-light min-h-screen flex items-center justify-center">
+        <Loader size={32} className="animate-spin text-primary" />
+      </main>
+    )
+  }
+
+  const displayName = profile?.displayName || user?.displayName || 'Utente'
+  const email = user?.email || ''
+  const phone = profile?.phoneNumber || user?.phoneNumber || ''
+  const city = profile?.city || ''
+
   return (
     <main className="bg-light min-h-screen">
       <div className="container py-6">
-        {/* Header */}
         <h1 className="text-3xl font-bold text-dark mb-8">Profilo</h1>
 
         {/* User Info Card */}
-        <div className="card mb-8">
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-dark mb-1">
-                {user?.displayName || 'Utente'}
-              </h2>
-              <p className="text-gray text-sm">{user?.email}</p>
-              {user?.phoneNumber && (
-                <p className="text-gray text-sm">{user.phoneNumber}</p>
-              )}
+        <div className="card mb-6">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center">
+                <User size={28} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-dark">{displayName}</h2>
+                <p className="text-gray text-sm">{email}</p>
+              </div>
             </div>
-            <button className="btn btn-icon btn-secondary">
-              <Edit2 size={20} />
-            </button>
-          </div>
-
-          <div className="border-t border-light-secondary pt-6 flex gap-3">
-            <button className="btn btn-secondary flex-1">Modifica Profilo</button>
-            <button className="btn btn-secondary flex-1">Cambia Password</button>
-          </div>
-        </div>
-
-        {/* Payment Methods Section */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-dark flex items-center gap-2">
-              <CreditCard size={24} />
-              Metodi di Pagamento
-            </h3>
-            {!showAddPayment && (
+            {!editing && (
               <button
-                onClick={() => setShowAddPayment(true)}
-                className="btn btn-accent btn-sm gap-1"
+                onClick={() => setEditing(true)}
+                className="btn btn-icon btn-secondary"
               >
-                <Plus size={18} />
-                Aggiungi
+                <Edit2 size={20} />
               </button>
             )}
           </div>
 
-          {/* Add Payment Method - Stripe Secure Flow */}
-          {showAddPayment && (
-            <div className="card mb-6">
-              <h4 className="font-bold text-dark mb-4">Aggiungi Carta di Credito</h4>
-              <p className="text-gray text-sm mb-4">
-                I dati della carta sono gestiti in modo sicuro da Stripe.
-                ParkFree non memorizza mai i dati della tua carta.
-              </p>
-
-              {/* In produzione qui va il componente Stripe Elements:
-                  <CardElement /> dal pacchetto @stripe/react-stripe-js */}
-              <div className="form-input mb-4 p-4 bg-light rounded-lg text-center text-gray text-sm">
-                Stripe Card Element (si attiva con le chiavi API configurate)
+          {editing ? (
+            <div className="space-y-4 border-t border-light-secondary pt-4">
+              <div className="form-group">
+                <label className="form-label">Nome</label>
+                <input
+                  type="text"
+                  value={formData.displayName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, displayName: e.target.value })
+                  }
+                  className="form-input"
+                  placeholder="Il tuo nome"
+                />
               </div>
-
+              <div className="form-group">
+                <label className="form-label flex items-center gap-1">
+                  <MapPin size={14} /> Città
+                </label>
+                <input
+                  type="text"
+                  value={formData.city}
+                  onChange={(e) =>
+                    setFormData({ ...formData, city: e.target.value })
+                  }
+                  className="form-input"
+                  placeholder="Es. Milano"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Telefono</label>
+                <input
+                  type="tel"
+                  value={formData.phoneNumber}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phoneNumber: e.target.value })
+                  }
+                  className="form-input"
+                  placeholder="+39 123 456 7890"
+                />
+              </div>
               <div className="flex gap-3">
                 <button
-                  type="button"
-                  onClick={() => setShowAddPayment(false)}
-                  className="btn btn-secondary flex-1"
+                  onClick={() => setEditing(false)}
+                  className="btn btn-secondary flex-1 gap-2"
                 >
-                  Annulla
+                  <X size={18} /> Annulla
                 </button>
                 <button
-                  type="button"
-                  onClick={handleAddPaymentMethod}
-                  className="btn btn-primary flex-1"
+                  onClick={handleSave}
+                  className="btn btn-primary flex-1 gap-2"
+                  disabled={saving}
                 >
-                  Aggiungi Carta
+                  {saving ? (
+                    <Loader size={18} className="animate-spin" />
+                  ) : (
+                    <>
+                      <Save size={18} /> Salva
+                    </>
+                  )}
                 </button>
               </div>
             </div>
-          )}
-
-          {/* Payment Methods List */}
-          {paymentMethods.length > 0 ? (
-            <div className="space-y-3">
-              {paymentMethods.map((method) => (
-                <div key={method.id} className="card">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <CreditCard size={24} className="text-primary" />
-                      <div>
-                        <h4 className="font-bold text-dark">
-                          {method.brand} ••••{method.last4}
-                        </h4>
-                        <p className="text-gray text-xs">
-                          Scadenza {method.expiryMonth}/{method.expiryYear}
-                        </p>
-                      </div>
-                    </div>
-                    {method.isDefault && (
-                      <span className="badge badge-accent text-xs">Predefinito</span>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2">
-                    {!method.isDefault && (
-                      <button
-                        onClick={() => handleSetDefault(method.id)}
-                        className="btn btn-secondary btn-sm flex-1"
-                      >
-                        Imposta come Predefinito
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleDeletePaymentMethod(method.id)}
-                      className="btn btn-icon btn-secondary"
-                      title="Elimina"
-                    >
-                      <Trash2 size={20} className="text-error" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
           ) : (
-            <div className="card text-center py-8">
-              <CreditCard size={32} className="text-gray mx-auto mb-3" />
-              <p className="text-gray text-sm">
-                Nessun metodo di pagamento. Aggiungi una carta di credito.
-              </p>
+            <div className="border-t border-light-secondary pt-4 space-y-2">
+              {phone && (
+                <p className="text-gray text-sm flex items-center gap-2">
+                  <span className="font-semibold text-dark">📱</span> {phone}
+                </p>
+              )}
+              {city && (
+                <p className="text-gray text-sm flex items-center gap-2">
+                  <MapPin size={14} /> {city}
+                </p>
+              )}
+              {profile?.referralCode && (
+                <p className="text-gray text-sm">
+                  Codice referral:{' '}
+                  <span className="font-bold text-primary">{profile.referralCode}</span>
+                </p>
+              )}
             </div>
           )}
         </div>
 
-        {/* Settings Section */}
-        <div className="card mb-8">
-          <h3 className="text-xl font-bold text-dark mb-4">Impostazioni</h3>
-          <div className="space-y-3">
-            <button className="w-full text-left p-3 hover:bg-light rounded-lg transition">
-              <p className="font-semibold text-dark">Notifiche</p>
-              <p className="text-gray text-xs">Gestisci le preferenze di notifica</p>
-            </button>
-            <button className="w-full text-left p-3 hover:bg-light rounded-lg transition">
-              <p className="font-semibold text-dark">Privacy e Sicurezza</p>
-              <p className="text-gray text-xs">Controlla come vengono utilizzati i tuoi dati</p>
-            </button>
-            <button className="w-full text-left p-3 hover:bg-light rounded-lg transition">
-              <p className="font-semibold text-dark">Aiuto e Supporto</p>
-              <p className="text-gray text-xs">Contatta il nostro team di supporto</p>
-            </button>
+        {/* Pagamenti placeholder */}
+        <div className="card mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <CreditCard size={20} className="text-primary" />
+            <h3 className="text-lg font-bold text-dark">Metodi di Pagamento</h3>
+          </div>
+          <div className="flex items-center gap-2 p-3 bg-light-secondary rounded-lg">
+            <CreditCard size={18} className="text-gray flex-shrink-0" />
+            <p className="text-gray text-sm">
+              I pagamenti con carta saranno disponibili a breve. Usa il wallet ParkFree per
+              pagare i parcheggi.
+            </p>
           </div>
         </div>
 
-        {/* Danger Zone */}
-        <div className="card border-2 border-error border-opacity-20 bg-error bg-opacity-5 mb-8">
-          <h3 className="text-lg font-bold text-error mb-4">Zone Pericolose</h3>
+        {/* Impostazioni */}
+        <div className="card mb-6">
+          <h3 className="text-lg font-bold text-dark mb-4">Impostazioni</h3>
+          <div className="space-y-1">
+            {[
+              { label: 'Notifiche', desc: 'Gestisci le preferenze di notifica' },
+              { label: 'Privacy e Sicurezza', desc: 'Controlla come vengono utilizzati i tuoi dati' },
+              { label: 'Aiuto e Supporto', desc: 'Contatta il nostro team di supporto' },
+            ].map((item) => (
+              <button
+                key={item.label}
+                className="w-full text-left p-3 hover:bg-light rounded-lg transition"
+              >
+                <p className="font-semibold text-dark">{item.label}</p>
+                <p className="text-gray text-xs">{item.desc}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Logout */}
+        <div className="card border-2 border-error border-opacity-20 mb-8">
           <button
             onClick={handleLogout}
-            className="w-full btn btn-secondary gap-2 text-error border-error border-opacity-20 hover:bg-error hover:bg-opacity-10"
+            className="w-full btn btn-secondary gap-2 text-error"
           >
-            <LogOut size={20} />
-            Disconnetti
+            <LogOut size={20} /> Disconnetti
           </button>
         </div>
 
-        {/* App Info */}
         <div className="text-center text-gray text-xs pb-8">
           <p>ParkFree v1.0.0</p>
-          <p className="mt-2">Fatto con ❤️ in Italia</p>
+          <p className="mt-1">Fatto con ❤️ in Italia</p>
         </div>
       </div>
     </main>
