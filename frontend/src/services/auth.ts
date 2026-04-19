@@ -14,7 +14,6 @@ import {
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
-  OAuthProvider,
   RecaptchaVerifier,
   signInWithPhoneNumber,
   ConfirmationResult,
@@ -46,8 +45,10 @@ const initFirebase = () => {
 
 initFirebase();
 
+// Translate Firebase error codes to Italian user-friendly messages
 export const translateFirebaseError = (error: AuthError | Error): string => {
   const code = (error as AuthError).code || '';
+
   const messages: Record<string, string> = {
     'auth/invalid-credential': 'Email o password non corretti.',
     'auth/invalid-email': 'Indirizzo email non valido.',
@@ -60,113 +61,136 @@ export const translateFirebaseError = (error: AuthError | Error): string => {
     'auth/too-many-requests': 'Troppi tentativi. Riprova tra qualche minuto.',
     'auth/network-request-failed': 'Errore di rete. Controlla la connessione.',
     'auth/popup-closed-by-user': 'Finestra di accesso chiusa. Riprova.',
-    'auth/popup-blocked': 'Il browser ha bloccato il popup. Prova di nuovo o consenti i popup.',
+    'auth/popup-blocked': 'Il browser ha bloccato la finestra popup. Prova di nuovo o consenti i popup.',
     'auth/cancelled-popup-request': 'Accesso annullato.',
-    'auth/account-exists-with-different-credential': 'Esiste già un account con questa email ma con metodo diverso.',
+    'auth/account-exists-with-different-credential': 'Esiste già un account con questa email ma con un metodo di accesso diverso.',
     'auth/unauthorized-domain': 'Dominio non autorizzato per questo progetto Firebase.',
     'auth/requires-recent-login': 'Sessione scaduta. Effettua di nuovo il login.',
     'auth/invalid-verification-code': 'Codice OTP non valido.',
     'auth/invalid-phone-number': 'Numero di telefono non valido. Usa il formato +39XXXXXXXXXX.',
     'auth/missing-phone-number': 'Inserisci il numero di telefono.',
-    'auth/quota-exceeded': 'Limite SMS raggiunto. Riprova più tardi.',
+    'auth/quota-exceeded': 'Limite di invii SMS raggiunto. Riprova più tardi.',
   };
+
   return messages[code] || 'Si è verificato un errore. Riprova più tardi.';
 };
 
 export const authService = {
+  // Email/Password Auth
   signInWithEmail: async (email: string, password: string): Promise<User | null> => {
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
       return result.user;
     } catch (error) {
-      throw new Error(translateFirebaseError(error as AuthError));
+      const msg = translateFirebaseError(error as AuthError);
+      throw new Error(msg);
     }
   },
 
-  signUpWithEmail: async (email: string, password: string, displayName: string): Promise<User | null> => {
+  signUpWithEmail: async (
+    email: string,
+    password: string,
+    displayName: string
+  ): Promise<User | null> => {
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(result.user, { displayName });
-      return result.user;
+      const user = result.user;
+      await updateProfile(user, { displayName });
+      return user;
     } catch (error) {
-      throw new Error(translateFirebaseError(error as AuthError));
+      const msg = translateFirebaseError(error as AuthError);
+      throw new Error(msg);
     }
   },
 
+  // Google OAuth — try popup first, fall back to redirect
   signInWithGoogle: async (): Promise<User | null> => {
     const provider = new GoogleAuthProvider();
     provider.addScope('profile');
     provider.addScope('email');
+
     try {
       const result = await signInWithPopup(auth, provider);
       return result.user;
     } catch (error) {
       const authError = error as AuthError;
-      if (['auth/popup-blocked', 'auth/popup-closed-by-user', 'auth/cancelled-popup-request'].includes(authError.code)) {
+      if (
+        authError.code === 'auth/popup-blocked' ||
+        authError.code === 'auth/popup-closed-by-user' ||
+        authError.code === 'auth/cancelled-popup-request'
+      ) {
         await signInWithRedirect(auth, provider);
         return null;
       }
-      throw new Error(translateFirebaseError(authError));
+      const msg = translateFirebaseError(authError);
+      throw new Error(msg);
     }
   },
 
-  signInWithApple: async (): Promise<User | null> => {
-    const provider = new OAuthProvider('apple.com');
-    provider.addScope('email');
-    provider.addScope('name');
-    try {
-      const result = await signInWithPopup(auth, provider);
-      return result.user;
-    } catch (error) {
-      const authError = error as AuthError;
-      if (['auth/popup-blocked', 'auth/popup-closed-by-user', 'auth/cancelled-popup-request'].includes(authError.code)) {
-        await signInWithRedirect(auth, provider);
-        return null;
-      }
-      if (['auth/operation-not-allowed', 'auth/internal-error'].includes(authError.code)) {
-        throw new Error('Accesso con Apple non ancora disponibile. Usa email o Google.');
-      }
-      throw new Error(translateFirebaseError(authError));
-    }
-  },
-
+  // Call this on app startup to handle OAuth redirect results
   checkRedirectResult: async (): Promise<User | null> => {
     try {
       const result = await getRedirectResult(auth);
-      return result ? result.user : null;
+      if (result) {
+        return result.user;
+      }
+      return null;
     } catch (error) {
-      console.error('Redirect result error:', translateFirebaseError(error as AuthError));
+      const msg = translateFirebaseError(error as AuthError);
+      console.error('Redirect result error:', msg);
       return null;
     }
   },
 
+  // Phone number auth
   signInWithPhone: async (phoneNumber: string): Promise<ConfirmationResult> => {
     try {
-      const recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
-      return await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+      const recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+      });
+      const confirmationResult = await signInWithPhoneNumber(
+        auth,
+        phoneNumber,
+        recaptchaVerifier
+      );
+      return confirmationResult;
     } catch (error) {
-      throw new Error(translateFirebaseError(error as AuthError));
+      const msg = translateFirebaseError(error as AuthError);
+      throw new Error(msg);
     }
   },
 
-  verifyPhoneOTP: async (confirmationResult: ConfirmationResult, otp: string): Promise<User | null> => {
+  // Verify phone OTP
+  verifyPhoneOTP: async (
+    confirmationResult: ConfirmationResult,
+    otp: string
+  ): Promise<User | null> => {
     try {
       const result = await confirmationResult.confirm(otp);
       return result.user;
     } catch (error) {
-      throw new Error(translateFirebaseError(error as AuthError));
+      const msg = translateFirebaseError(error as AuthError);
+      throw new Error(msg);
     }
   },
 
+  // Sign out
   signOut: async (): Promise<void> => {
     try {
       await firebaseSignOut(auth);
     } catch (error) {
-      throw new Error(translateFirebaseError(error as AuthError));
+      const msg = translateFirebaseError(error as AuthError);
+      throw new Error(msg);
     }
   },
 
-  getCurrentUser: (): User | null => auth.currentUser,
+  getCurrentUser: (): User | null => {
+    return auth.currentUser;
+  },
+
   getAuth: () => auth,
-  onAuthStateChanged: (callback: (user: User | null) => void) => auth.onAuthStateChanged(callback),
+
+  onAuthStateChanged: (callback: (user: User | null) => void) => {
+    return auth.onAuthStateChanged(callback);
+  },
 };
