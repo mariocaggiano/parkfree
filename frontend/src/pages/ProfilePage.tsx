@@ -20,10 +20,21 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!user) return
+    let cancelled = false
     setLoading(true)
-    profileService
-      .get()
-      .then((p) => {
+    ;(async () => {
+      try {
+        let p = await profileService.get()
+        if (!p) {
+          // Prima volta: crea profilo da Firebase Auth
+          await profileService.createOrUpdate({
+            displayName: user.displayName || '',
+            email: user.email || '',
+            phoneNumber: user.phoneNumber || '',
+          })
+          p = await profileService.get()
+        }
+        if (cancelled) return
         if (p) {
           setProfile(p)
           setFormData({
@@ -31,25 +42,14 @@ export default function ProfilePage() {
             city: p.city || '',
             phoneNumber: p.phoneNumber || '',
           })
-        } else {
-          // Prima volta: crea profilo da Firebase Auth
-          const initial = {
-            displayName: user.displayName || '',
-            email: user.email || '',
-            phoneNumber: user.phoneNumber || '',
-          }
-          profileService.createOrUpdate(initial).then(() =>
-            profileService.get().then(setProfile)
-          )
-          setFormData({
-            displayName: user.displayName || '',
-            city: '',
-            phoneNumber: user.phoneNumber || '',
-          })
         }
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false))
+      } catch (err) {
+        console.error(err)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
   }, [user])
 
   const handleSave = async () => {
