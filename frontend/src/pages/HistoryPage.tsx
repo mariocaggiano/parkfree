@@ -21,7 +21,7 @@ export default function HistoryPage() {
   useEffect(() => {
     if (!user) return
     setLoading(true)
-    sessionsService.getCompleted().then(setSessions).catch(console.error).finally(() => setLoading(false))
+    sessionsService.getCompleted(100).then(setSessions).catch(console.error).finally(() => setLoading(false))
   }, [user])
 
   const getZoneName = (zoneId: string) => ZONE_NAMES[zoneId] || `Zona ${zoneId}`
